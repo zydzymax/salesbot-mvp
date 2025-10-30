@@ -1,0 +1,64 @@
+/* SalesBot Dashboard Widget Styles */
+
+.salesbot-dashboard-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 20px 0;
+}
+
+.salesbot-dashboard-container iframe {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: white;
+}
+
+.salesbot-manager-widget {
+    margin-top: 10px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.salesbot-manager-widget iframe {
+    width: 100%;
+    border: none;
+    background: white;
+    border-radius: 4px;
+}
+
+.salesbot-widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+    font-size: 18px;
+}
+
+.salesbot-widget-header .icon {
+    font-size: 24px;
+    margin-right: 10px;
+}
+
+.salesbot-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    color: #666;
+    font-size: 16px;
+}
+
+.salesbot-error {
+    padding: 20px;
+    background: #fee;
+    border: 1px solid #fcc;
+    border-radius: 8px;
+    color: #c33;
+    margin: 20px 0;
+}

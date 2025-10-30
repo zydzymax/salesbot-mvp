@@ -1,0 +1,10 @@
+{
+  "widget": {
+    "name": "SalesBot Dashboard",
+    "description": "Дашборд команды продаж с метриками качества звонков, активности менеджеров и автоматическими алертами",
+    "short_description": "Дашборд продаж"
+  },
+  "settings": {
+    "server_url": "URL сервера SalesBot (например: https://dashboard.yourdomain.com)"
+  }
+}

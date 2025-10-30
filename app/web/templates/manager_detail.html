@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}{{ manager.name }} - Детальный просмотр{% endblock %}
+
+{% block extra_css %}
+<style>
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #4299e1;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .manager-header-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 30px;
+        border-radius: 12px;
+        color: white;
+        margin-bottom: 30px;
+    }
+
+    .manager-header-card h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+    }
+
+    .manager-header-card .meta {
+        opacity: 0.9;
+        font-size: 14px;
+    }
+
+    .deals-grid {
+        display: grid;
+        gap: 20px;
+    }
+
+    .deal-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-left: 4px solid #4299e1;
+    }
+
+    .deal-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        border-left-color: #667eea;
+    }
+
+    .deal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 20px;
+    }
+
+    .deal-name {
+        font-size: 20px;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 5px;
+    }
+
+    .deal-id {
+        font-size: 13px;
+        color: #718096;
+    }
+
+    .deal-price {
+        text-align: right;
+    }
+
+    .price-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #38a169;
+        margin-bottom: 5px;
+    }
+
+    .price-label {
+        font-size: 12px;
+        color: #718096;
+    }
+
+    .deal-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .deal-stat {
+        text-align: center;
+        padding: 12px;
+        background: #f7fafc;
+        border-radius: 8px;
+    }
+
+    .deal-stat-value {
+        font-size: 22px;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 5px;
+    }
+
+    .deal-stat-label {
+        font-size: 12px;
+        color: #718096;
+    }
+
+    .quality-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .quality-high {
+        background: #c6f6d5;
+        color: #22543d;
+    }
+
+    .quality-medium {
+        background: #feebc8;
+        color: #7c2d12;
+    }
+
+    .quality-low {
+        background: #fed7d7;
+        color: #742a2a;
+    }
+
+    .view-analysis-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: 500;
+        transition: opacity 0.3s;
+        width: 100%;
+        text-align: center;
+    }
+
+    .view-analysis-btn:hover {
+        opacity: 0.9;
+    }
+
+    .last-update {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px;
+        background: #edf2f7;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #4a5568;
+        margin-bottom: 15px;
+    }
+
+    .no-deals {
+        text-align: center;
+        padding: 60px 20px;
+        color: #718096;
+    }
+
+    .no-deals-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-top: 10px;
+    }
+
+    .status-new {
+        background: #bee3f8;
+        color: #2c5282;
+    }
+
+    .status-progress {
+        background: #fef5e7;
+        color: #975a16;
+    }
+
+    .status-success {
+        background: #c6f6d5;
+        color: #22543d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <a href="/admin/" class="back-link">← Вернуться к списку менеджеров</a>
+
+    <!-- Шапка с информацией о менеджере -->
+    <div class="manager-header-card">
+        <h1>👤 {{ manager.name }}</h1>
+        <div class="meta">
+            AmoCRM ID: {{ manager.amocrm_id }}
+            {% if manager.telegram_chat_id %}
+            | Telegram: подключен
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Статистика менеджера -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">📊 Сделок в работе</div>
+            <div class="stat-value">{{ manager_stats.deals_in_progress }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">✅ Завершено сделок</div>
+            <div class="stat-value">{{ manager_stats.deals_completed_all_time }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">💰 Выручка</div>
+            <div class="stat-value">{{ "{:,.0f}".format(manager_stats.revenue_all_time).replace(',', ' ') }} ₽</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">📝 Звонков с анализом</div>
+            <div class="stat-value">{{ manager_stats.calls_with_transcription }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">⭐ Средняя оценка</div>
+            <div class="stat-value">{{ manager_stats.avg_quality_score }}<span style="font-size: 18px;">/100</span></div>
+        </div>
+        {% if manager_stats.last_call_date %}
+        <div class="stat-card">
+            <div class="stat-label">⏰ Последний звонок</div>
+            <div class="stat-value" style="font-size: 18px;">{{ manager_stats.last_call_date.strftime('%d.%m %H:%M') }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Список сделок -->
+    <div class="card">
+        <h2 class="card-title">📋 Активные сделки ({{ deals|length }})</h2>
+
+        {% if deals %}
+        <div class="deals-grid">
+            {% for deal in deals %}
+            <div class="deal-card" onclick="location.href='/admin/deals/{{ deal.id }}'">
+                <div class="deal-header">
+                    <div>
+                        <div class="deal-name">{{ deal.name }}</div>
+                        <div class="deal-id">#{{ deal.id }}</div>
+                    </div>
+                    {% if deal.price > 0 %}
+                    <div class="deal-price">
+                        <div class="price-value">{{ "{:,.0f}".format(deal.price).replace(',', ' ') }} ₽</div>
+                        <div class="price-label">Бюджет</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if deal.last_call_date %}
+                <div class="last-update">
+                    <span>⏰</span>
+                    <strong>Последний звонок:</strong>
+                    {{ deal.last_call_date.strftime('%d.%m.%Y %H:%M') }}
+                </div>
+                {% endif %}
+
+                <div class="deal-stats">
+                    <div class="deal-stat">
+                        <div class="deal-stat-value">{{ deal.total_calls }}</div>
+                        <div class="deal-stat-label">Всего звонков</div>
+                    </div>
+                    <div class="deal-stat">
+                        <div class="deal-stat-value">{{ deal.transcribed_calls }}</div>
+                        <div class="deal-stat-label">С транскрипцией</div>
+                    </div>
+                    {% if deal.avg_quality > 0 %}
+                    <div class="deal-stat">
+                        <div class="deal-stat-value">
+                            <span class="quality-badge {% if deal.avg_quality >= 80 %}quality-high{% elif deal.avg_quality >= 60 %}quality-medium{% else %}quality-low{% endif %}">
+                                {{ deal.avg_quality }}/100
+                            </span>
+                        </div>
+                        <div class="deal-stat-label">Средняя оценка</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <a href="/admin/deals/{{ deal.id }}" class="view-analysis-btn">
+                    {% if deal.transcribed_calls > 0 %}
+                    🔍 Посмотреть анализ и рекомендации
+                    {% else %}
+                    📋 Посмотреть сделку
+                    {% endif %}
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-deals">
+            <div class="no-deals-icon">📭</div>
+            <h3>Нет активных сделок</h3>
+            <p>У данного менеджера пока нет активных сделок в работе</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Дополнительная аналитика (если есть KPI) -->
+    {% if kpi %}
+    <div class="card" style="margin-top: 20px;">
+        <h2 class="card-title">📊 Аналитика за {{ period }} дней</h2>
+
+        <div class="stats-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div class="stat-box">
+                <div class="stat-box-value">{{ kpi.calls_made }}</div>
+                <div class="stat-box-label">Звонков совершено</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-box-value">{{ kpi.calls_answered }}</div>
+                <div class="stat-box-label">Звонков отвечено</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-box-value">{{ kpi.avg_call_duration }}s</div>
+                <div class="stat-box-label">Ср. длительность</div>
+            </div>
+            {% if kpi.total_commitments > 0 %}
+            <div class="stat-box">
+                <div class="stat-box-value">{{ kpi.fulfilled_commitments }}/{{ kpi.total_commitments }}</div>
+                <div class="stat-box-label">Обещаний выполнено</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+    // Автообновление каждые 5 минут
+    setTimeout(function() {
+        location.reload();
+    }, 300000);
+</script>
+{% endblock %}
+{% endblock %}

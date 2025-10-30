@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Сделки{% endblock %}
+
+{% block extra_css %}
+<style>
+    .deals-grid {
+        display: grid;
+        gap: 20px;
+    }
+
+    .deal-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-left: 4px solid #4299e1;
+    }
+
+    .deal-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .deal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 20px;
+    }
+
+    .deal-id {
+        font-size: 20px;
+        font-weight: bold;
+        color: #2d3748;
+    }
+
+    .quality-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .quality-high {
+        background: #c6f6d5;
+        color: #22543d;
+    }
+
+    .quality-medium {
+        background: #feebc8;
+        color: #7c2d12;
+    }
+
+    .quality-low {
+        background: #fed7d7;
+        color: #742a2a;
+    }
+
+    .deal-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #4a5568;
+        font-size: 14px;
+    }
+
+    .meta-item strong {
+        color: #2d3748;
+    }
+
+    .view-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: 500;
+        transition: opacity 0.3s;
+    }
+
+    .view-button:hover {
+        opacity: 0.9;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #4299e1;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <a href="/admin/" class="back-link">← Вернуться в дашборд</a>
+
+    <div class="header">
+        <h1>📋 Сделки по менеджерам</h1>
+        <p>Список всех сделок с анализом звонков</p>
+    </div>
+
+    {% for manager_name, deals in managers_deals.items() %}
+    <div style="margin-bottom: 40px;">
+        <h2 style="color: #667eea; margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px;">
+            👤 {{ manager_name }} <span style="color: #718096; font-size: 18px;">({{ deals|length }} {{ 'сделка' if deals|length == 1 else ('сделки' if deals|length < 5 else 'сделок') }})</span>
+        </h2>
+
+        <div class="deals-grid">
+            {% for deal in deals %}
+            <div class="deal-card" onclick="location.href='/admin/deals/{{ deal.lead_id }}'">
+                <div class="deal-header">
+                    <div>
+                        <div class="deal-id" style="margin-bottom: 5px;">{{ deal.lead_name }}</div>
+                        <div style="font-size: 14px; color: #718096;">#{{ deal.lead_id }}</div>
+                    </div>
+                    <div class="quality-badge {% if deal.avg_quality >= 80 %}quality-high{% elif deal.avg_quality >= 60 %}quality-medium{% else %}quality-low{% endif %}">
+                        {{ deal.avg_quality }}/100
+                    </div>
+                </div>
+
+                <div class="deal-meta">
+                    <div class="meta-item">
+                        <span>📞</span>
+                        <strong>Звонков:</strong> {{ deal.calls_count }}
+                    </div>
+                    <div class="meta-item">
+                        <span>📅</span>
+                        <strong>Последний звонок:</strong>
+                        {% if deal.last_call_date %}
+                            {{ deal.last_call_date.strftime('%d.%m.%Y %H:%M') }}
+                        {% else %}
+                            Н/Д
+                        {% endif %}
+                    </div>
+                </div>
+
+                <a href="/admin/deals/{{ deal.lead_id }}" class="view-button">
+                    Посмотреть анализ →
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

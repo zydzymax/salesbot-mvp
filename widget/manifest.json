@@ -1,0 +1,30 @@
+{
+  "widget": {
+    "name": "widget.salesbot_dashboard",
+    "description": "Дашборд команды продаж с аналитикой менеджеров и QA оценками",
+    "short_description": "Дашборд продаж",
+    "version": "1.0.0",
+    "init_once": false,
+    "locale": ["ru"],
+    "installation": true,
+    "support": {
+      "link": "https://yourdomain.com/support",
+      "email": "support@yourdomain.com"
+    },
+    "settings": {
+      "server_url": {
+        "name": "settings.server_url",
+        "type": "text",
+        "required": true
+      }
+    }
+  },
+  "locations": [
+    "settings",
+    "advanced_settings",
+    "lcard-1"
+  ],
+  "tour": {
+    "is_tour": false
+  }
+}

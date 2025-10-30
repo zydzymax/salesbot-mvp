@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+
+{% block title %}{{ lead_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #4299e1;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+    }
+
+    .header h1 {
+        font-size: 28px;
+        margin-bottom: 15px;
+        color: white;
+    }
+
+    .header-meta {
+        display: flex;
+        gap: 30px;
+        font-size: 14px;
+        opacity: 0.95;
+        flex-wrap: wrap;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #667eea;
+        margin: 10px 0;
+    }
+
+    .stat-label {
+        color: #718096;
+        font-size: 14px;
+    }
+
+    .section {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    .section h2 {
+        font-size: 22px;
+        margin-bottom: 20px;
+        color: #1a202c;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 10px;
+    }
+
+    .section h3 {
+        font-size: 18px;
+        margin-top: 20px;
+        margin-bottom: 15px;
+        color: #2d3748;
+    }
+
+    /* Professional Analysis Styles */
+    .deal-status-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+
+    .status-new { background: #bee3f8; color: #2c5282; }
+    .status-hot { background: #fed7d7; color: #742a2a; }
+    .status-cold { background: #e2e8f0; color: #2d3748; }
+    .status-risk { background: #fc8181; color: #fff; }
+    .status-ready { background: #c6f6d5; color: #22543d; }
+    .status-active { background: #feebc8; color: #7c2d12; }
+
+    .health-score {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin: 20px 0;
+    }
+
+    .health-bar {
+        flex: 1;
+        height: 30px;
+        background: #e2e8f0;
+        border-radius: 15px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .health-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+        transition: width 0.5s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+
+    .health-fill.low { background: linear-gradient(90deg, #f56565 0%, #e53e3e 100%); }
+    .health-fill.medium { background: linear-gradient(90deg, #ed8936 0%, #dd6b20 100%); }
+
+    .summary-box {
+        background: #edf2f7;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 15px 0;
+        line-height: 1.8;
+        font-size: 15px;
+    }
+
+    .manager-grade {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 24px;
+        margin: 10px 0;
+    }
+
+    .grade-A { background: #c6f6d5; color: #22543d; }
+    .grade-B { background: #bee3f8; color: #2c5282; }
+    .grade-C { background: #feebc8; color: #7c2d12; }
+    .grade-D { background: #fed7d7; color: #742a2a; }
+    .grade-F { background: #fc8181; color: #fff; }
+
+    .list-pros {
+        background: #f0fff4;
+        border-left: 4px solid #48bb78;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 4px;
+    }
+
+    .list-cons {
+        background: #fffaf0;
+        border-left: 4px solid #ed8936;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 4px;
+    }
+
+    .list-risks {
+        background: #fff5f5;
+        border-left: 4px solid #f56565;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 4px;
+    }
+
+    .list-item {
+        margin: 10px 0;
+        padding-left: 25px;
+        position: relative;
+    }
+
+    .list-item:before {
+        content: "•";
+        position: absolute;
+        left: 10px;
+        font-weight: bold;
+    }
+
+    .action-card {
+        background: #ebf8ff;
+        border: 2px solid #4299e1;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 15px 0;
+    }
+
+    .action-card h4 {
+        color: #2c5282;
+        margin-bottom: 10px;
+        font-size: 16px;
+    }
+
+    .action-meta {
+        display: flex;
+        gap: 20px;
+        font-size: 14px;
+        color: #4a5568;
+        margin-top: 10px;
+    }
+
+    .script-box {
+        background: #f7fafc;
+        border: 2px dashed #cbd5e0;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 15px 0;
+        font-family: 'Courier New', monospace;
+        line-height: 1.8;
+    }
+
+    .coaching-note {
+        background: linear-gradient(135deg, #fef5e7 0%, #fde4cf 100%);
+        border-left: 4px solid #f39c12;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        font-style: italic;
+    }
+
+    .trend-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .trend-up { background: #c6f6d5; color: #22543d; }
+    .trend-stable { background: #bee3f8; color: #2c5282; }
+    .trend-down { background: #fed7d7; color: #742a2a; }
+
+    .calls-timeline {
+        position: relative;
+        padding-left: 40px;
+        margin-top: 30px;
+    }
+
+    .calls-timeline:before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #cbd5e0;
+    }
+
+    .call-item {
+        position: relative;
+        background: #f7fafc;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #cbd5e0;
+    }
+
+    .call-item:before {
+        content: '';
+        position: absolute;
+        left: -34px;
+        top: 24px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #cbd5e0;
+        border: 3px solid white;
+    }
+
+    .call-item.quality-high {
+        border-left-color: #48bb78;
+    }
+
+    .call-item.quality-high:before {
+        background: #48bb78;
+    }
+
+    .call-item.quality-medium {
+        border-left-color: #ed8936;
+    }
+
+    .call-item.quality-medium:before {
+        background: #ed8936;
+    }
+
+    .call-item.quality-low {
+        border-left-color: #f56565;
+    }
+
+    .call-item.quality-low:before {
+        background: #f56565;
+    }
+
+    .call-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .call-date {
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .call-quality {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .quality-high {
+        background: #c6f6d5;
+        color: #22543d;
+    }
+
+    .quality-medium {
+        background: #feebc8;
+        color: #7c2d12;
+    }
+
+    .quality-low {
+        background: #fed7d7;
+        color: #742a2a;
+    }
+
+    .call-meta {
+        display: flex;
+        gap: 15px;
+        font-size: 13px;
+        color: #718096;
+        flex-wrap: wrap;
+    }
+
+    .call-transcript {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #e2e8f0;
+        color: #4a5568;
+        line-height: 1.6;
+        font-size: 14px;
+    }
+
+    .expand-btn {
+        background: transparent;
+        border: 1px solid #cbd5e0;
+        color: #4a5568;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        margin-top: 10px;
+    }
+
+    .expand-btn:hover {
+        background: #edf2f7;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <a href="/admin/deals" class="back-link">← Назад к списку сделок</a>
+
+    <div class="header">
+        <h1>📋 {{ lead_name }}</h1>
+        <div class="header-meta">
+            <span>👤 Менеджер: <strong>{{ manager_name }}</strong></span>
+            <span>📞 Всего звонков: <strong>{{ total_calls }}</strong></span>
+            <span>📝 Транскрибировано: <strong>{{ transcribed_calls }}</strong></span>
+            <span>🤖 Проанализировано: <strong>{{ analyzed_calls }}</strong></span>
+        </div>
+    </div>
+
+    {% if deal_analysis %}
+    <!-- ПРОФЕССИОНАЛЬНЫЙ АНАЛИЗ СДЕЛКИ -->
+    <div class="section">
+        <h2>🎯 Профессиональный анализ сделки</h2>
+
+        <div style="display: flex; gap: 20px; align-items: center; margin: 20px 0;">
+            <span class="deal-status-badge status-{{ deal_analysis.deal_status.replace(' ', '-').replace('/', '-').lower() }}">
+                {{ deal_analysis.deal_status.upper() }}
+            </span>
+
+            <span class="trend-indicator trend-{{ deal_analysis.deal_dynamics.trend }}">
+                {% if deal_analysis.deal_dynamics.trend == 'улучшается' %}📈{% elif deal_analysis.deal_dynamics.trend == 'ухудшается' %}📉{% else %}➡️{% endif %}
+                Тренд: {{ deal_analysis.deal_dynamics.trend }}
+            </span>
+        </div>
+
+        <div class="health-score">
+            <strong>Здоровье сделки:</strong>
+            <div class="health-bar">
+                <div class="health-fill {% if deal_analysis.deal_health_score < 40 %}low{% elif deal_analysis.deal_health_score < 70 %}medium{% endif %}"
+                     style="width: {{ deal_analysis.deal_health_score }}%">
+                    {{ deal_analysis.deal_health_score }}/100
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-box">
+            {{ deal_analysis.overall_summary }}
+        </div>
+
+        <h3>📊 Анализ клиента</h3>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 15px 0;">
+            <div style="background: #f7fafc; padding: 15px; border-radius: 8px;">
+                <strong>Уровень интереса:</strong> {{ deal_analysis.client_analysis.interest_level }}
+            </div>
+            <div style="background: #f7fafc; padding: 15px; border-radius: 8px;">
+                <strong>Этап принятия решения:</strong> {{ deal_analysis.client_analysis.decision_stage }}
+            </div>
+        </div>
+
+        {% if deal_analysis.client_analysis.buying_signals %}
+        <div class="list-pros">
+            <strong>✅ Сигналы готовности к покупке:</strong>
+            {% for signal in deal_analysis.client_analysis.buying_signals %}
+            <div class="list-item">{{ signal }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if deal_analysis.client_analysis.objections %}
+        <div class="list-cons">
+            <strong>⚠️ Главные возражения:</strong>
+            {% for objection in deal_analysis.client_analysis.objections %}
+            <div class="list-item">{{ objection }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if deal_analysis.client_analysis.red_flags %}
+        <div class="list-risks">
+            <strong>🚨 Тревожные сигналы:</strong>
+            {% for flag in deal_analysis.client_analysis.red_flags %}
+            <div class="list-item">{{ flag }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- АНАЛИЗ РАБОТЫ МЕНЕДЖЕРА -->
+    <div class="section">
+        <h2>👤 Анализ работы менеджера</h2>
+
+        <div style="display: flex; gap: 20px; align-items: center; margin: 20px 0;">
+            <div>
+                <strong>Оценка:</strong>
+                <span class="manager-grade grade-{{ deal_analysis.manager_performance.grade }}">
+                    {{ deal_analysis.manager_performance.grade }}
+                </span>
+            </div>
+            <div>
+                <strong>Уровень:</strong> {{ deal_analysis.manager_performance.skill_level }}
+            </div>
+        </div>
+
+        {% if deal_analysis.manager_performance.strengths %}
+        <div class="list-pros">
+            <strong>💪 Сильные стороны:</strong>
+            {% for strength in deal_analysis.manager_performance.strengths %}
+            <div class="list-item">{{ strength }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if deal_analysis.manager_performance.weaknesses %}
+        <div class="list-cons">
+            <strong>📈 Точки роста:</strong>
+            {% for weakness in deal_analysis.manager_performance.weaknesses %}
+            <div class="list-item">{{ weakness }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if deal_analysis.coaching_notes %}
+        <div class="coaching-note">
+            <strong>💡 Рекомендации коуча:</strong><br>
+            {{ deal_analysis.coaching_notes }}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- СЛЕДУЮЩИЕ ШАГИ -->
+    <div class="section">
+        <h2>🎯 Рекомендации по следующим шагам</h2>
+
+        {% if deal_analysis.next_steps_recommendations.immediate_actions %}
+        <h3>⚡ Срочные действия</h3>
+        {% for action in deal_analysis.next_steps_recommendations.immediate_actions %}
+        <div class="action-card">
+            <h4>{{ action.action }}</h4>
+            <p><strong>Почему:</strong> {{ action.why }}</p>
+            <p><strong>Как:</strong> {{ action.how }}</p>
+            <div class="action-meta">
+                <span>📅 Срок: <strong>{{ action.deadline }}</strong></span>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if deal_analysis.next_steps_recommendations.conversation_script %}
+        <h3>📞 Сценарий следующего звонка</h3>
+        <div class="script-box">
+            {{ deal_analysis.next_steps_recommendations.conversation_script }}
+        </div>
+        {% endif %}
+
+        {% if deal_analysis.next_steps_recommendations.key_questions_to_ask %}
+        <h3>❓ Ключевые вопросы для следующего звонка</h3>
+        <div class="list-pros">
+            {% for question in deal_analysis.next_steps_recommendations.key_questions_to_ask %}
+            <div class="list-item">{{ question }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if deal_analysis.next_steps_recommendations.objection_handling %}
+        <h3>🛡️ Работа с возражениями</h3>
+        <div class="summary-box">
+            {{ deal_analysis.next_steps_recommendations.objection_handling }}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- РИСКИ И СТРАТЕГИЯ -->
+    <div class="section">
+        <h2>⚠️ Риски и стратегия</h2>
+
+        <div style="background: {% if deal_analysis.risks.risk_level == 'высокий' %}#fff5f5{% elif deal_analysis.risks.risk_level == 'средний' %}#fffaf0{% else %}#f0fff4{% endif %}; padding: 15px; border-radius: 8px; margin: 15px 0;">
+            <strong>Уровень риска:</strong> <span style="text-transform: uppercase;">{{ deal_analysis.risks.risk_level }}</span>
+        </div>
+
+        {% if deal_analysis.risks.main_risks %}
+        <div class="list-risks">
+            <strong>🚨 Основные риски:</strong>
+            {% for risk in deal_analysis.risks.main_risks %}
+            <div class="list-item">{{ risk }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if deal_analysis.risks.mitigation_plan %}
+        <h3>🛡️ План снижения рисков</h3>
+        <div class="list-pros">
+            {% for action in deal_analysis.risks.mitigation_plan %}
+            <div class="list-item">{{ action }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if deal_analysis.strategic_recommendations %}
+        <h3>🎯 Стратегические рекомендации</h3>
+        {% for recommendation in deal_analysis.strategic_recommendations %}
+        <div class="summary-box" style="margin: 10px 0;">
+            {{ recommendation }}
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% else %}
+    <!-- NO ANALYSIS YET -->
+    <div class="section">
+        <h2>⏳ Анализ в процессе</h2>
+        <div class="summary-box">
+            <p>Анализ сделки будет доступен после обработки звонков.</p>
+            <p><strong>Обработано звонков:</strong> {{ transcribed_calls }} из {{ total_calls }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ИСТОРИЯ ЗВОНКОВ -->
+    <div class="section">
+        <h2>📞 История звонков</h2>
+
+        <div class="calls-timeline">
+            {% for call in calls %}
+            <div class="call-item {% if call.quality_score and call.quality_score >= 80 %}quality-high{% elif call.quality_score and call.quality_score >= 60 %}quality-medium{% else %}quality-low{% endif %}">
+                <div class="call-header">
+                    <div class="call-date">
+                        📅 {{ call.created_at.strftime('%d.%m.%Y %H:%M') }}
+                    </div>
+                    {% if call.quality_score %}
+                    <div class="call-quality {% if call.quality_score >= 80 %}quality-high{% elif call.quality_score >= 60 %}quality-medium{% else %}quality-low{% endif %}">
+                        {{ call.quality_score }}/100
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="call-meta">
+                    {% if call.client_phone %}<span>📱 {{ call.client_phone }}</span>{% endif %}
+                    <span>⏰ {{ (call.duration_seconds or 0) // 60 }} мин {{ (call.duration_seconds or 0) % 60 }} сек</span>
+                    <span>📊 {{ call.transcription_status }}</span>
+                </div>
+
+                {% if call.transcription_text %}
+                <div class="call-transcript">
+                    <strong>Транскрипт:</strong><br>
+                    <span id="transcript-{{ call.id }}" style="display: block; max-height: 100px; overflow: hidden;">
+                        {{ call.transcription_text }}
+                    </span>
+                    <button class="expand-btn" onclick="toggleTranscript('{{ call.id }}')">Показать полностью</button>
+                </div>
+                {% endif %}
+
+                {% if call.analysis_result %}
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                    <strong>Анализ звонка:</strong> {{ call.analysis_result.summary }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleTranscript(callId) {
+    const el = document.getElementById('transcript-' + callId);
+    const btn = el.nextElementSibling;
+    if (el.style.maxHeight === '100px') {
+        el.style.maxHeight = 'none';
+        btn.textContent = 'Свернуть';
+    } else {
+        el.style.maxHeight = '100px';
+        btn.textContent = 'Показать полностью';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Команда продаж{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h1>📊 Дашборд Эффективности Менеджеров</h1>
+            <a href="/admin/deals" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; transition: opacity 0.3s;">
+                📋 Все сделки
+            </a>
+        </div>
+        <div class="header-meta">
+            <strong>Период:</strong> Последние {{ period }} дней |
+            <strong>Команда:</strong> {{ team_size }} менеджеров |
+            <strong>Обновлено:</strong> {{ now.strftime('%d.%m.%Y %H:%M') }}
+        </div>
+    </div>
+
+    <!-- Общая статистика -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Всего звонков</div>
+            <div class="stat-value">{{ total_calls }}</div>
+            <div class="stat-change">
+                {{ (total_calls / team_size)|round(1) if team_size else 0 }} на менеджера
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Средний QA Score</div>
+            <div class="stat-value">{{ avg_quality }}<span style="font-size: 20px">/100</span></div>
+            <div class="stat-change {% if avg_quality >= 75 %}positive{% elif avg_quality >= 60 %}{% else %}negative{% endif %}">
+                {% if avg_quality >= 80 %}
+                    ✅ Отлично
+                {% elif avg_quality >= 70 %}
+                    ⚠️ Хорошо
+                {% elif avg_quality >= 60 %}
+                    ⚠️ Удовлетворительно
+                {% else %}
+                    ❌ Требуется улучшение
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Всего обещаний</div>
+            <div class="stat-value">{{ total_commitments }}</div>
+            <div class="stat-change">
+                Выполнение: {{ ((total_commitments - total_overdue) / total_commitments * 100)|round(1) if total_commitments else 100 }}%
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Просрочено обещаний</div>
+            <div class="stat-value" style="color: {% if total_overdue > 0 %}#f56565{% else %}#48bb78{% endif %}">
+                {{ total_overdue }}
+            </div>
+            <div class="stat-change {% if total_overdue == 0 %}positive{% else %}negative{% endif %}">
+                {% if total_overdue == 0 %}
+                    ✅ Все в срок!
+                {% else %}
+                    ⚠️ Требуется внимание
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Алерты -->
+    {% if alerts %}
+    <div class="card">
+        <div class="card-title">🚨 Алерты ({{ alerts|length }})</div>
+        {% for alert in alerts %}
+        <div class="alert alert-{{ alert.severity }}">
+            <strong>{{ alert.manager_name }}</strong> - {{ alert.message }}
+            <small style="float: right; opacity: 0.7">{{ alert.type }}</small>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Таблица сравнения команды -->
+    <div class="card">
+        <div class="card-title">👥 Сравнение Команды</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Менеджер</th>
+                    <th>Звонков</th>
+                    <th>QA Score</th>
+                    <th>Обещания</th>
+                    <th>Просрочено</th>
+                    <th>% Выполнения</th>
+                    <th>Подозр.</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for manager in team_comparison %}
+                <tr>
+                    <td><strong>{{ loop.index }}</strong></td>
+                    <td>
+                        <a href="/admin/manager/{{ manager.manager_id }}" style="text-decoration: none; color: #4299e1;">
+                            {{ manager.manager_name }}
+                        </a>
+                    </td>
+                    <td>{{ manager.calls_made }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-weight: 600; {% if manager.avg_quality_score >= 80 %}color: #48bb78{% elif manager.avg_quality_score >= 60 %}color: #ed8936{% else %}color: #f56565{% endif %}">
+                                {{ manager.avg_quality_score|round(1) }}
+                            </span>
+                            <div class="progress-bar" style="width: 100px;">
+                                <div class="progress-fill {% if manager.avg_quality_score < 60 %}danger{% elif manager.avg_quality_score < 75 %}warning{% endif %}"
+                                     style="width: {{ manager.avg_quality_score }}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ manager.total_commitments }}</td>
+                    <td style="{% if manager.overdue_commitments > 0 %}color: #f56565; font-weight: 600{% endif %}">
+                        {{ manager.overdue_commitments }}
+                    </td>
+                    <td>
+                        {% if manager.total_commitments > 0 %}
+                            {{ ((manager.fulfilled_commitments / manager.total_commitments) * 100)|round(1) }}%
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if manager.suspicious_activity_score > 0.5 %}
+                            <span class="badge badge-danger">{{ manager.red_flags_count }} 🚩</span>
+                        {% elif manager.suspicious_activity_score > 0.3 %}
+                            <span class="badge badge-warning">{{ manager.red_flags_count }}</span>
+                        {% else %}
+                            <span class="badge badge-success">✓</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if manager.avg_quality_score >= 80 and manager.commitment_fulfillment_rate >= 90 and manager.suspicious_activity_score < 0.3 %}
+                            <span class="badge badge-success">Отлично</span>
+                        {% elif manager.avg_quality_score >= 60 and manager.commitment_fulfillment_rate >= 70 %}
+                            <span class="badge badge-info">Хорошо</span>
+                        {% elif manager.avg_quality_score < 60 or manager.overdue_commitments > 3 or manager.suspicious_activity_score > 0.5 %}
+                            <span class="badge badge-danger">Проблемы</span>
+                        {% else %}
+                            <span class="badge badge-warning">Норма</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Рейтинги -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="card">
+            <div class="card-title">🏆 Топ по Качеству</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Место</th>
+                        <th>Менеджер</th>
+                        <th>Оценка</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for manager in leaderboard_quality %}
+                    <tr>
+                        <td>
+                            {% if loop.index == 1 %}🥇
+                            {% elif loop.index == 2 %}🥈
+                            {% elif loop.index == 3 %}🥉
+                            {% else %}{{ loop.index }}{% endif %}
+                        </td>
+                        <td>{{ manager.manager_name }}</td>
+                        <td><strong>{{ manager.avg_quality_score|round(1) }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📞 Топ по Активности</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Место</th>
+                        <th>Менеджер</th>
+                        <th>Звонков</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for manager in leaderboard_activity %}
+                    <tr>
+                        <td>
+                            {% if loop.index == 1 %}🥇
+                            {% elif loop.index == 2 %}🥈
+                            {% elif loop.index == 3 %}🥉
+                            {% else %}{{ loop.index }}{% endif %}
+                        </td>
+                        <td>{{ manager.manager_name }}</td>
+                        <td><strong>{{ manager.calls_made }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Автообновление каждые 30 секунд
+    setInterval(() => {
+        fetch('/admin/api/refresh-data?period={{ period }}')
+            .then(res => res.json())
+            .then(data => {
+                console.log('Data refreshed:', data.updated_at);
+                // Можно обновить части страницы
+            });
+    }, 30000);
+</script>
+{% endblock %}
