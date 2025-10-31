@@ -259,7 +259,7 @@
         {% if deals %}
         <div class="deals-grid">
             {% for deal in deals %}
-            <div class="deal-card" onclick="location.href='/admin/deals/{{ deal.id }}'">
+            <div class="deal-card" onclick="location.href='/deals/{{ deal.id }}'">
                 <div class="deal-header">
                     <div>
                         <div class="deal-name">{{ deal.name }}</div>
@@ -302,7 +302,7 @@
                     {% endif %}
                 </div>
 
-                <a href="/admin/deals/{{ deal.id }}" class="view-analysis-btn">
+                <a href="/deals/{{ deal.id }}" class="view-analysis-btn">
                     {% if deal.transcribed_calls > 0 %}
                     🔍 Посмотреть анализ и рекомендации
                     {% else %}

@@ -381,7 +381,7 @@
 
 {% block content %}
 <div class="container">
-    <a href="/admin/deals" class="back-link">← Назад к списку сделок</a>
+    <a href="/admin/" class="back-link">← Назад к списку менеджеров</a>
 
     <div class="header">
         <h1>📋 {{ lead_name }}</h1>
@@ -618,10 +618,11 @@
                 {% if call.transcription_text %}
                 <div class="call-transcript">
                     <strong>Транскрипт:</strong><br>
-                    <span id="transcript-{{ call.id }}" style="display: block; max-height: 100px; overflow: hidden;">
+                    {# Первый звонок (самый свежий) - развернут сразу #}
+                    <span id="transcript-{{ call.id }}" style="display: block; {% if loop.first %}max-height: none;{% else %}max-height: 100px; overflow: hidden;{% endif %}">
                         {{ call.transcription_text }}
                     </span>
-                    <button class="expand-btn" onclick="toggleTranscript('{{ call.id }}')">Показать полностью</button>
+                    <button class="expand-btn" onclick="toggleTranscript('{{ call.id }}')">{% if loop.first %}Свернуть{% else %}Показать полностью{% endif %}</button>
                 </div>
                 {% endif %}
 
