@@ -104,6 +104,7 @@ class Call(Base, TimestampMixin):
         index=True
     )
     transcription_text = Column(Text, nullable=True)
+    transcription_segments = Column(JSON, nullable=True)  # Structured transcription with speaker roles
     transcription_error = Column(Text, nullable=True)
 
     # Analysis fields
@@ -149,6 +150,7 @@ class Manager(Base, TimestampMixin):
     email = Column(String(255), nullable=True)
     telegram_chat_id = Column(String(50), nullable=True, unique=True, index=True)
     is_active = Column(Boolean, default=True, nullable=False, index=True)
+    is_monitored = Column(Boolean, default=True, nullable=False, index=True)  # Monitor by default
 
     # Relationships
     calls = relationship("Call", back_populates="manager")
@@ -260,4 +262,43 @@ class Commitment(Base, TimestampMixin):
         Index("idx_commitments_manager_deadline", "manager_id", "deadline"),
         Index("idx_commitments_status", "is_fulfilled", "is_overdue"),
         Index("idx_commitments_deal", "deal_id", "deadline"),
+    )
+
+
+class AlertSettings(Base, TimestampMixin):
+    """Alert settings for monitoring and notifications"""
+    __tablename__ = "alert_settings"
+
+    id = Column(Integer, primary_key=True)
+
+    # Quality thresholds
+    min_quality_score = Column(Integer, default=70, nullable=False)  # Alert if quality < this
+
+    # Call duration thresholds
+    min_call_duration = Column(Integer, default=60, nullable=False)  # seconds
+    max_call_duration = Column(Integer, default=1800, nullable=False)  # seconds (30 min)
+
+    # Response time alerts
+    max_response_time_hours = Column(Integer, default=24, nullable=False)
+
+    # Keyword alerts (JSON list of keywords to monitor)
+    alert_keywords = Column(JSON, nullable=True)  # ["возврат", "жалоба", "руководитель"]
+
+    # Notification settings
+    notify_on_low_quality = Column(Boolean, default=True, nullable=False)
+    notify_on_missed_commitment = Column(Boolean, default=True, nullable=False)
+    notify_on_keywords = Column(Boolean, default=True, nullable=False)
+    notify_on_long_silence = Column(Boolean, default=False, nullable=False)
+
+    # Daily digest
+    send_daily_digest = Column(Boolean, default=True, nullable=False)
+    digest_time = Column(String(5), default="09:00", nullable=False)  # HH:MM format
+
+    # Working hours monitoring
+    working_hours_start = Column(String(5), default="09:00", nullable=False)
+    working_hours_end = Column(String(5), default="18:00", nullable=False)
+    alert_outside_hours = Column(Boolean, default=False, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("min_quality_score >= 0 AND min_quality_score <= 100", name="check_quality_range"),
     )

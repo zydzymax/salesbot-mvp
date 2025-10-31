@@ -14,7 +14,7 @@ import structlog
 from ..config import get_settings
 from ..database.init_db import db_manager
 from ..database.crud import CallCRUD
-from ..database.models import TranscriptionStatus, AnalysisStatus
+from ..database.models import TranscriptionStatus, AnalysisStatus, Call
 from ..audio.processor import AudioProcessor
 from ..audio.transcriber import WhisperTranscriber
 from ..analysis.analyzer import CallAnalyzer
@@ -65,23 +65,62 @@ class TranscribeCallTask:
                 raise Exception(f"Audio too long: {duration}s > {self.settings.max_audio_duration_seconds}s")
             
             logger.info(f"Audio processed", call_id=self.call_id, duration=format_duration(duration))
-            
-            # Transcribe
-            transcription = await self.transcriber.transcribe(processed_audio)
-            if not transcription or len(transcription.strip()) < 10:
+
+            # Transcribe with speaker diarization
+            # Get call direction to determine first speaker
+            async with db_manager.get_session() as session:
+                from sqlalchemy import select
+                call_data = await session.execute(select(Call).where(Call.id == UUID(self.call_id)))
+                call = call_data.scalar_one_or_none()
+                call_direction = "outgoing"  # Default to outgoing (manager calls client)
+                # TODO: Determine actual call direction from AmoCRM data if available
+
+            segments = await self.transcriber.transcribe_with_diarization(
+                processed_audio,
+                language="ru",
+                call_direction=call_direction
+            )
+
+            if not segments:
+                raise Exception("Transcription failed - no segments")
+
+            # Build plain text transcription from segments
+            transcription = "\n\n".join([
+                f"{'🎧 Менеджер' if seg.speaker == 'manager' else '💬 Клиент'}: {seg.text}"
+                for seg in segments
+            ])
+
+            if len(transcription.strip()) < 10:
                 raise Exception("Transcription too short or empty")
-            
-            logger.info(f"Transcription completed", call_id=self.call_id, length=len(transcription))
-            
-            # Update database
+
+            logger.info(
+                f"Transcription with diarization completed",
+                call_id=self.call_id,
+                segments=len(segments),
+                length=len(transcription)
+            )
+
+            # Convert segments to dict for JSON storage
+            segments_dict = [
+                {
+                    "speaker": seg.speaker,
+                    "text": seg.text,
+                    "start_time": seg.start_time,
+                    "end_time": seg.end_time
+                }
+                for seg in segments
+            ]
+
+            # Update database with both text and structured segments
             async with db_manager.get_session() as session:
                 success = await CallCRUD.update_transcription(
                     session,
                     UUID(self.call_id),
                     TranscriptionStatus.COMPLETED,
-                    text=transcription
+                    text=transcription,
+                    segments=segments_dict
                 )
-                
+
                 if not success:
                     raise Exception("Failed to save transcription")
             

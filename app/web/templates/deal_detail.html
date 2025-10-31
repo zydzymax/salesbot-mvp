@@ -618,11 +618,27 @@
                 {% if call.transcription_text %}
                 <div class="call-transcript">
                     <strong>Транскрипт:</strong><br>
-                    {# Первый звонок (самый свежий) - развернут сразу #}
-                    <span id="transcript-{{ call.id }}" style="display: block; {% if loop.first %}max-height: none;{% else %}max-height: 100px; overflow: hidden;{% endif %}">
-                        {{ call.transcription_text }}
-                    </span>
-                    <button class="expand-btn" onclick="toggleTranscript('{{ call.id }}')">{% if loop.first %}Свернуть{% else %}Показать полностью{% endif %}</button>
+                    <div id="transcript-{{ call.id }}" class="transcript-text" style="display: block; max-height: 150px; overflow: hidden;">
+                        {% if call.transcription_segments %}
+                            {# Structured transcription with speaker roles #}
+                            {% for segment in call.transcription_segments %}
+                            <div class="transcript-segment" style="margin-bottom: 12px; padding: 10px; border-radius: 8px; {% if segment.speaker == 'manager' %}background-color: #e3f2fd; border-left: 3px solid #2196F3;{% else %}background-color: #f3e5f5; border-left: 3px solid #9c27b0;{% endif %}">
+                                <div style="font-weight: bold; margin-bottom: 5px; color: {% if segment.speaker == 'manager' %}#1976D2{% else %}#7b1fa2{% endif %};">
+                                    {% if segment.speaker == 'manager' %}
+                                        🎧 Менеджер
+                                    {% else %}
+                                        💬 Клиент
+                                    {% endif %}
+                                </div>
+                                <div style="line-height: 1.6;">{{ segment.text }}</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            {# Plain text transcription (legacy format) #}
+                            <div style="white-space: pre-wrap;">{{ call.transcription_text }}</div>
+                        {% endif %}
+                    </div>
+                    <button class="expand-btn" onclick="toggleTranscript('{{ call.id }}')">Показать полностью</button>
                 </div>
                 {% endif %}
 
@@ -641,11 +657,11 @@
 function toggleTranscript(callId) {
     const el = document.getElementById('transcript-' + callId);
     const btn = el.nextElementSibling;
-    if (el.style.maxHeight === '100px') {
+    if (el.style.maxHeight === '150px') {
         el.style.maxHeight = 'none';
         btn.textContent = 'Свернуть';
     } else {
-        el.style.maxHeight = '100px';
+        el.style.maxHeight = '150px';
         btn.textContent = 'Показать полностью';
     }
 }

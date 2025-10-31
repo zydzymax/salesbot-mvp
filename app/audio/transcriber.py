@@ -24,6 +24,7 @@ class TranscriptionSegment:
     start_time: float
     end_time: float
     text: str
+    speaker: Optional[str] = None  # "manager" or "client"
 
 
 class WhisperTranscriber:
@@ -115,7 +116,232 @@ class WhisperTranscriber:
         except Exception as e:
             logger.error(f"Segmented transcription failed: {e}")
             return []
-    
+
+    async def transcribe_with_diarization(
+        self,
+        audio_data: bytes,
+        language: str = "ru",
+        call_direction: str = "outgoing"  # "outgoing" or "incoming"
+    ) -> List[TranscriptionSegment]:
+        """
+        Transcribe audio with speaker diarization (manager vs client).
+        Uses pyannote.audio for accurate speaker detection.
+
+        Args:
+            audio_data: Audio file bytes
+            language: Language code (default: "ru")
+            call_direction: "outgoing" (manager calls client) or "incoming" (client calls manager)
+
+        Returns:
+            List of TranscriptionSegment with speaker roles assigned
+        """
+
+        # Get transcription segments with timestamps from Whisper
+        transcription_segments = await self.transcribe_with_timestamps(audio_data, language)
+
+        if not transcription_segments:
+            return []
+
+        # Perform speaker diarization using pyannote
+        try:
+            from .diarization import diarizer
+
+            # Get speaker segments (who speaks when)
+            speaker_segments = await diarizer.diarize_audio(audio_data, num_speakers=2)
+
+            if not speaker_segments:
+                logger.warning("Diarization returned no segments, using fallback")
+                return await self._fallback_diarization(transcription_segments, call_direction)
+
+            # Assign roles (manager/client) to speakers
+            role_segments = diarizer.assign_roles(speaker_segments, call_direction)
+
+            # Match transcription segments with speaker segments
+            diarized_segments = self._match_transcription_to_speakers(
+                transcription_segments,
+                role_segments
+            )
+
+            # Merge consecutive segments from same speaker
+            merged_segments = self._merge_consecutive_segments(diarized_segments)
+
+            logger.info(
+                f"Diarization completed",
+                segments=len(merged_segments),
+                manager_segments=len([s for s in merged_segments if s.speaker == "manager"]),
+                client_segments=len([s for s in merged_segments if s.speaker == "client"])
+            )
+
+            return merged_segments
+
+        except Exception as e:
+            logger.error(f"Diarization failed, using fallback: {e}")
+            return await self._fallback_diarization(transcription_segments, call_direction)
+
+    def _match_transcription_to_speakers(
+        self,
+        transcription_segments: List[TranscriptionSegment],
+        speaker_segments: List
+    ) -> List[TranscriptionSegment]:
+        """
+        Match transcription segments with speaker segments based on timing
+
+        Args:
+            transcription_segments: Segments with text and timing from Whisper
+            speaker_segments: Segments with speaker labels and timing from diarization
+
+        Returns:
+            Transcription segments with speaker labels assigned
+        """
+        matched_segments = []
+
+        for trans_seg in transcription_segments:
+            # Find the speaker segment with maximum overlap
+            best_speaker = "manager"  # Default
+            max_overlap = 0.0
+
+            trans_start = trans_seg.start_time
+            trans_end = trans_seg.end_time
+
+            for spk_seg in speaker_segments:
+                # Calculate overlap between transcription and speaker segment
+                overlap_start = max(trans_start, spk_seg.start_time)
+                overlap_end = min(trans_end, spk_seg.end_time)
+                overlap = max(0, overlap_end - overlap_start)
+
+                if overlap > max_overlap:
+                    max_overlap = overlap
+                    best_speaker = spk_seg.speaker
+
+            # Create segment with assigned speaker
+            matched_segment = TranscriptionSegment(
+                start_time=trans_seg.start_time,
+                end_time=trans_seg.end_time,
+                text=trans_seg.text,
+                speaker=best_speaker
+            )
+            matched_segments.append(matched_segment)
+
+        return matched_segments
+
+    def _merge_consecutive_segments(
+        self,
+        segments: List[TranscriptionSegment]
+    ) -> List[TranscriptionSegment]:
+        """Merge consecutive segments from the same speaker"""
+        if not segments:
+            return []
+
+        merged = []
+        current = segments[0]
+
+        for segment in segments[1:]:
+            if segment.speaker == current.speaker:
+                # Merge with current
+                current = TranscriptionSegment(
+                    start_time=current.start_time,
+                    end_time=segment.end_time,
+                    text=current.text + " " + segment.text,
+                    speaker=current.speaker
+                )
+            else:
+                # Different speaker, save current and start new
+                merged.append(current)
+                current = segment
+
+        # Don't forget last segment
+        merged.append(current)
+        return merged
+
+    async def _fallback_diarization(
+        self,
+        segments: List[TranscriptionSegment],
+        call_direction: str
+    ) -> List[TranscriptionSegment]:
+        """
+        Improved fallback diarization using multiple heuristics
+        Used when pyannote diarization fails
+        """
+        logger.info("Using improved heuristic-based diarization")
+
+        if not segments:
+            return []
+
+        # Determine initial speaker
+        current_speaker = "manager" if call_direction == "outgoing" else "client"
+        diarized_segments = []
+
+        # Calculate segment statistics for better detection
+        avg_segment_length = sum(s.end_time - s.start_time for s in segments) / len(segments)
+
+        for i, segment in enumerate(segments):
+            should_switch = False
+            segment_length = segment.end_time - segment.start_time
+
+            if i > 0:
+                prev_segment = segments[i-1]
+                pause = segment.start_time - prev_segment.end_time
+                prev_length = prev_segment.end_time - prev_segment.start_time
+
+                # Multiple heuristics for speaker change detection:
+
+                # 1. Long pause (>1.5s) usually means speaker change
+                if pause >= 1.5:
+                    should_switch = True
+
+                # 2. Very long segment after very short one suggests interruption
+                if prev_length < 2.0 and segment_length > 5.0 and pause > 0.5:
+                    should_switch = True
+
+                # 3. Pattern: short-pause-short often indicates same speaker
+                # Pattern: long-pause-long often indicates turn-taking
+                if pause < 0.5 and prev_length < 3.0 and segment_length < 3.0:
+                    should_switch = False
+                elif pause > 1.0 and prev_length > 3.0 and segment_length > 3.0:
+                    should_switch = True
+
+                # 4. Consistent pattern: alternating long/short segments
+                # suggests conversation flow
+                if i >= 2:
+                    prev_prev = segments[i-2]
+                    prev_prev_length = prev_prev.end_time - prev_prev.start_time
+
+                    # If lengths alternate significantly, likely different speakers
+                    length_ratio = max(prev_prev_length, segment_length) / (min(prev_prev_length, segment_length) + 0.1)
+                    if length_ratio > 2.0 and pause > 0.8:
+                        should_switch = True
+
+                # 5. Moderate pause with text length change
+                if pause > 0.8 and pause < 1.5:
+                    # Check text length change
+                    prev_words = len(prev_segment.text.split())
+                    curr_words = len(segment.text.split())
+                    if abs(prev_words - curr_words) > 5 and max(prev_words, curr_words) > 8:
+                        should_switch = True
+
+            if should_switch:
+                current_speaker = "client" if current_speaker == "manager" else "manager"
+
+            diarized_segment = TranscriptionSegment(
+                start_time=segment.start_time,
+                end_time=segment.end_time,
+                text=segment.text,
+                speaker=current_speaker
+            )
+            diarized_segments.append(diarized_segment)
+
+        merged = self._merge_consecutive_segments(diarized_segments)
+
+        logger.info(
+            f"Heuristic diarization completed",
+            original_segments=len(segments),
+            diarized_segments=len(merged),
+            manager_segments=len([s for s in merged if s.speaker == "manager"]),
+            client_segments=len([s for s in merged if s.speaker == "client"])
+        )
+
+        return merged
+
     async def _make_transcription_request(
         self,
         audio_data: bytes,

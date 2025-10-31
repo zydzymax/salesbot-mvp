@@ -145,6 +145,14 @@ try:
 except Exception as e:
     logger.warning(f"Failed to load deals router: {e}")
 
+# Include settings router
+try:
+    from .web.routers.settings import router as settings_router
+    app.include_router(settings_router, prefix="/admin")
+    logger.info("Settings router loaded")
+except Exception as e:
+    logger.warning(f"Failed to load settings router: {e}")
+
 
 # Request logging middleware
 @app.middleware("http")

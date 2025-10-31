@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки - SalesBot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: white; padding: 20px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .header h1 { font-size: 24px; color: #1a202c; margin-bottom: 8px; }
+        .header p { color: #718096; }
+        .card { background: white; padding: 24px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .card-title { font-size: 18px; font-weight: 600; color: #2d3748; margin-bottom: 16px; display: flex; align-items: center; }
+        .card-title::before { content: ''; display: inline-block; width: 4px; height: 20px; background: #4299e1; border-radius: 2px; margin-right: 12px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 500; color: #4a5568; margin-bottom: 8px; font-size: 14px; }
+        input[type="number"], input[type="text"], input[type="time"] { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s; }
+        input:focus { outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66,153,225,0.1); }
+        .checkbox-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+        .checkbox-item { display: flex; align-items: center; padding: 12px; border-radius: 8px; transition: background 0.2s; cursor: pointer; }
+        .checkbox-item:hover { background: #f7fafc; }
+        .checkbox-item input[type="checkbox"] { width: 20px; height: 20px; margin-right: 12px; cursor: pointer; accent-color: #4299e1; }
+        .checkbox-item label { cursor: pointer; flex: 1; font-size: 14px; color: #2d3748; }
+        .btn { padding: 12px 24px; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; font-size: 14px; }
+        .btn-primary { background: #4299e1; color: white; }
+        .btn-primary:hover { background: #3182ce; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(66,153,225,0.3); }
+        .btn-secondary { background: #edf2f7; color: #2d3748; }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .actions { display: flex; gap: 12px; margin-top: 24px; }
+        .success-message { background: #c6f6d5; color: #22543d; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: none; }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .badge-success { background: #c6f6d5; color: #22543d; }
+        .badge-warning { background: #feebc8; color: #7c2d12; }
+        .nav { background: white; padding: 16px 24px; border-radius: 12px; margin-bottom: 24px; }
+        .nav a { color: #4299e1; text-decoration: none; margin-right: 20px; font-weight: 500; }
+        .nav a:hover { color: #3182ce; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="/admin/">← Назад к панели</a>
+        </div>
+
+        <div class="header">
+            <h1>⚙️ Настройки SalesBot</h1>
+            <p>Управление мониторингом менеджеров и настройка алертов</p>
+        </div>
+
+        <div id="successMessage" class="success-message">✓ Настройки успешно сохранены!</div>
+
+        <!-- Выбор менеджеров для мониторинга -->
+        <div class="card">
+            <div class="card-title">Мониторинг менеджеров</div>
+            <p style="color: #718096; margin-bottom: 16px; font-size: 14px;">Выберите менеджеров, чьи звонки будут отслеживаться системой</p>
+
+            <div class="checkbox-group" id="managersCheckboxes">
+                {% for manager in managers %}
+                <div class="checkbox-item">
+                    <input type="checkbox" id="manager-{{ manager.id }}" value="{{ manager.id }}" {% if manager.is_monitored %}checked{% endif %}>
+                    <label for="manager-{{ manager.id }}">
+                        {{ manager.name }}
+                        <span class="badge {% if manager.is_monitored %}badge-success{% else %}badge-warning{% endif %}">
+                            {% if manager.is_monitored %}Активен{% else %}Отключен{% endif %}
+                        </span>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-primary" onclick="saveManagerSettings()">Сохранить выбор менеджеров</button>
+            </div>
+        </div>
+
+        <!-- Настройки алертов -->
+        <div class="card">
+            <div class="card-title">Параметры алертов</div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div class="form-group">
+                    <label>Минимальный балл качества (0-100)</label>
+                    <input type="number" id="minQualityScore" value="{{ alert_settings.min_quality_score }}" min="0" max="100">
+                    <small style="color: #718096; font-size: 12px;">Алерт если оценка ниже</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Мин. длительность звонка (сек)</label>
+                    <input type="number" id="minCallDuration" value="{{ alert_settings.min_call_duration }}" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label>Макс. длительность звонка (сек)</label>
+                    <input type="number" id="maxCallDuration" value="{{ alert_settings.max_call_duration }}" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label>Время ответа клиенту (часы)</label>
+                    <input type="number" id="maxResponseTime" value="{{ alert_settings.max_response_time_hours }}" min="1">
+                </div>
+
+                <div class="form-group">
+                    <label>Начало рабочего дня</label>
+                    <input type="time" id="workingHoursStart" value="{{ alert_settings.working_hours_start }}">
+                </div>
+
+                <div class="form-group">
+                    <label>Конец рабочего дня</label>
+                    <input type="time" id="workingHoursEnd" value="{{ alert_settings.working_hours_end }}">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 20px;">
+                <label>Ключевые слова для отслеживания (через запятую)</label>
+                <input type="text" id="alertKeywords" value="{{ (alert_settings.alert_keywords or []) | join(', ') }}" placeholder="возврат, жалоба, руководитель">
+            </div>
+
+            <div class="checkbox-group" style="margin-top: 20px;">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="notifyLowQuality" {% if alert_settings.notify_on_low_quality %}checked{% endif %}>
+                    <label for="notifyLowQuality">Уведомления о низком качестве</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="notifyMissedCommitment" {% if alert_settings.notify_on_missed_commitment %}checked{% endif %}>
+                    <label for="notifyMissedCommitment">Уведомления о невыполненных обязательствах</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="notifyKeywords" {% if alert_settings.notify_on_keywords %}checked{% endif %}>
+                    <label for="notifyKeywords">Уведомления при упоминании ключевых слов</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="sendDailyDigest" {% if alert_settings.send_daily_digest %}checked{% endif %}>
+                    <label for="sendDailyDigest">Ежедневная сводка</label>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-primary" onclick="saveAlertSettings()">Сохранить настройки алертов</button>
+                <button class="btn btn-secondary" onclick="window.location.reload()">Отменить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function saveManagerSettings() {
+            const checkboxes = document.querySelectorAll('#managersCheckboxes input[type="checkbox"]:checked');
+            const managerIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            try {
+                const response = await fetch('/admin/settings/managers/monitoring', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ manager_ids: managerIds })
+                });
+
+                if (response.ok) {
+                    showSuccess();
+                    setTimeout(() => window.location.reload(), 1000);
+                }
+            } catch (error) {
+                alert('Ошибка при сохранении: ' + error.message);
+            }
+        }
+
+        async function saveAlertSettings() {
+            const keywords = document.getElementById('alertKeywords').value
+                .split(',')
+                .map(k => k.trim())
+                .filter(k => k);
+
+            const data = {
+                min_quality_score: parseInt(document.getElementById('minQualityScore').value),
+                min_call_duration: parseInt(document.getElementById('minCallDuration').value),
+                max_call_duration: parseInt(document.getElementById('maxCallDuration').value),
+                max_response_time_hours: parseInt(document.getElementById('maxResponseTime').value),
+                working_hours_start: document.getElementById('workingHoursStart').value,
+                working_hours_end: document.getElementById('workingHoursEnd').value,
+                alert_keywords: keywords,
+                notify_on_low_quality: document.getElementById('notifyLowQuality').checked,
+                notify_on_missed_commitment: document.getElementById('notifyMissedCommitment').checked,
+                notify_on_keywords: document.getElementById('notifyKeywords').checked,
+                send_daily_digest: document.getElementById('sendDailyDigest').checked
+            };
+
+            try {
+                const response = await fetch('/admin/settings/alerts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    showSuccess();
+                }
+            } catch (error) {
+                alert('Ошибка при сохранении: ' + error.message);
+            }
+        }
+
+        function showSuccess() {
+            const msg = document.getElementById('successMessage');
+            msg.style.display = 'block';
+            setTimeout(() => msg.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>

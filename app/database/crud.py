@@ -3,6 +3,7 @@ CRUD operations for database models
 Async operations with proper error handling
 """
 
+import asyncio
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 from uuid import UUID
@@ -10,11 +11,31 @@ from uuid import UUID
 from sqlalchemy import select, update, delete, and_, or_, desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import OperationalError
 
 from .models import (
     Call, Manager, AnalysisCache, Report, SystemLog, TokenStorage,
     TranscriptionStatus, AnalysisStatus, ReportType
 )
+
+
+async def retry_on_lock(func, *args, session=None, max_retries=5, initial_delay=0.1, **kwargs):
+    """Retry function on database lock with exponential backoff"""
+    from sqlalchemy.exc import PendingRollbackError
+
+    for attempt in range(max_retries):
+        try:
+            return await func(*args, **kwargs)
+        except (OperationalError, PendingRollbackError) as e:
+            error_str = str(e)
+            if ("database is locked" in error_str or "PendingRollbackError" in error_str) and attempt < max_retries - 1:
+                # Rollback the session before retry
+                if session:
+                    await session.rollback()
+                delay = initial_delay * (2 ** attempt)
+                await asyncio.sleep(delay)
+                continue
+            raise
 
 
 class CallCRUD:
@@ -40,7 +61,8 @@ class CallCRUD:
             audio_url=audio_url
         )
         session.add(call)
-        await session.commit()
+        # Retry commit on database lock
+        await retry_on_lock(session.commit, session=session)
         await session.refresh(call)
         return call
     
@@ -89,18 +111,25 @@ class CallCRUD:
         call_id: UUID,
         status: TranscriptionStatus,
         text: Optional[str] = None,
+        segments: Optional[List[Dict[str, Any]]] = None,
         error: Optional[str] = None
     ) -> bool:
-        """Update call transcription status and text"""
+        """Update call transcription status, text and segments"""
+        values = {
+            "transcription_status": status,
+            "transcription_text": text,
+            "transcription_error": error,
+            "updated_at": datetime.utcnow()
+        }
+
+        # Add segments if provided
+        if segments is not None:
+            values["transcription_segments"] = segments
+
         result = await session.execute(
             update(Call)
             .where(Call.id == call_id)
-            .values(
-                transcription_status=status,
-                transcription_text=text,
-                transcription_error=error,
-                updated_at=datetime.utcnow()
-            )
+            .values(**values)
         )
         await session.commit()
         return result.rowcount > 0
@@ -166,7 +195,8 @@ class ManagerCRUD:
             email=email
         )
         session.add(manager)
-        await session.commit()
+        # Retry commit on database lock
+        await retry_on_lock(session.commit, session=session)
         await session.refresh(manager)
         return manager
     

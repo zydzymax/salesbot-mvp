@@ -41,7 +41,7 @@ class ManagerStatsService:
             # Собрать статистику по каждому менеджеру
             managers_stats = []
             for manager in managers:
-                stats = await self.get_manager_stats(manager.amocrm_id, manager.name)
+                stats = await self.get_manager_stats(int(manager.amocrm_user_id), manager.name)
                 stats['db_id'] = manager.id
                 stats['telegram_chat_id'] = manager.telegram_chat_id
                 managers_stats.append(stats)
@@ -89,18 +89,15 @@ class ManagerStatsService:
                 'avg_quality_score': 0
             }
 
-            # Получить сделки в работе (статусы для воронки)
-            # В AmoCRM статусы: 142 - Первичный контакт, 143 - Переговоры, и т.д.
-            # Статус 142 = новые, 143 = в работе, 39536394 = успешно (закрыто)
-            deals_in_progress_response = await amocrm_client.get_leads(
+            # Получить ВСЕ сделки менеджера (без фильтра по воронке)
+            # Используем правильный синтаксис фильтра по документации AmoCRM API
+            deals_all_response = await amocrm_client.get_leads(
                 limit=250,
                 filter_params={
-                    "filter[responsible_user_id][]": [manager_amocrm_id],
-                    "filter[statuses][0][pipeline_id]": 7841826,  # ID воронки
-                    # Не включаем завершенные статусы
+                    "filter[responsible_user_id]": manager_amocrm_id
                 }
             )
-            deals = deals_in_progress_response.get('_embedded', {}).get('leads', [])
+            deals = deals_all_response.get('_embedded', {}).get('leads', [])
 
             # Считаем сделки в работе (исключая закрытые статусы)
             closed_status_ids = [142, 143]  # ID успешно закрытых и отказов
@@ -110,17 +107,9 @@ class ManagerStatsService:
             ]
             stats['deals_in_progress'] = len(deals_in_progress_list)
 
-            # Получить завершенные сделки за все время
+            # Завершенные сделки берем из уже полученного списка
             # Статус 142 и 143 - это закрытые сделки
-            deals_completed_response = await amocrm_client.get_leads(
-                limit=250,
-                filter_params={
-                    "filter[responsible_user_id][]": [manager_amocrm_id],
-                    "filter[statuses][0][pipeline_id]": 7841826,
-                    "filter[statuses][0][status_id][]": [142, 143]  # Закрытые статусы
-                }
-            )
-            completed_deals = deals_completed_response.get('_embedded', {}).get('leads', [])
+            completed_deals = [d for d in deals if d.get('status_id') in closed_status_ids]
             stats['deals_completed_all_time'] = len(completed_deals)
 
             # Посчитать выручку от успешно закрытых (status_id = 142 - успешно закрыто)
@@ -144,11 +133,26 @@ class ManagerStatsService:
             # Получить данные из нашей БД (звонки с транскрипцией и оценками)
             async with db_manager.get_session() as session:
                 from sqlalchemy import select, func
-                from ..database.models import Call
+                from ..database.models import Call, Manager
+
+                # Найти внутренний manager_id по amocrm_user_id
+                manager_stmt = select(Manager).where(
+                    Manager.amocrm_user_id == str(manager_amocrm_id)
+                )
+                manager_result = await session.execute(manager_stmt)
+                manager = manager_result.scalar_one_or_none()
+
+                if not manager:
+                    # Если менеджер не найден в БД - возвращаем пустые статы
+                    logger.warning(f"Manager not found in DB", amocrm_id=manager_amocrm_id)
+                    return stats
+
+                # Используем внутренний ID менеджера для поиска звонков
+                internal_manager_id = manager.id
 
                 # Последний звонок
                 last_call_stmt = select(Call).where(
-                    Call.manager_id == manager_amocrm_id
+                    Call.manager_id == internal_manager_id
                 ).order_by(Call.created_at.desc()).limit(1)
 
                 last_call_result = await session.execute(last_call_stmt)
@@ -159,7 +163,7 @@ class ManagerStatsService:
 
                 # Звонки с транскрипцией
                 transcribed_count_stmt = select(func.count(Call.id)).where(
-                    Call.manager_id == manager_amocrm_id,
+                    Call.manager_id == internal_manager_id,
                     Call.transcription_text.isnot(None)
                 )
                 transcribed_count = await session.scalar(transcribed_count_stmt)
@@ -167,7 +171,7 @@ class ManagerStatsService:
 
                 # Средний score
                 avg_score_stmt = select(func.avg(Call.quality_score)).where(
-                    Call.manager_id == manager_amocrm_id,
+                    Call.manager_id == internal_manager_id,
                     Call.quality_score.isnot(None)
                 )
                 avg_score = await session.scalar(avg_score_stmt)
@@ -219,10 +223,9 @@ class ManagerStatsService:
             Список сделок с дополнительной информацией
         """
         try:
-            # Получить сделки менеджера из AmoCRM
+            # Получить сделки менеджера из AmoCRM (правильный синтаксис)
             filter_params = {
-                "filter[responsible_user_id][]": [manager_amocrm_id],
-                "filter[statuses][0][pipeline_id]": 7841826
+                "filter[responsible_user_id]": manager_amocrm_id
             }
 
             if not include_closed:
