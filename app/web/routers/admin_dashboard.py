@@ -90,13 +90,13 @@ async def manager_detail_page(
 
         # Получить статистику менеджера
         manager_stats = await manager_stats_service.get_manager_stats(
-            manager.amocrm_id,
+            int(manager.amocrm_user_id),
             manager.name
         )
 
         # Получить все сделки менеджера
         deals = await manager_stats_service.get_manager_deals(
-            manager.amocrm_id,
+            int(manager.amocrm_user_id),
             include_closed=False  # Показываем только активные сделки
         )
 
