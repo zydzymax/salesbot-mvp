@@ -265,6 +265,31 @@ class Commitment(Base, TimestampMixin):
     )
 
 
+class User(Base, TimestampMixin):
+    """Client users with access to dashboard"""
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    full_name = Column(String(255), nullable=False)
+    company_name = Column(String(255), nullable=True)
+    phone = Column(String(50), nullable=True)
+
+    # Subscription
+    is_active = Column(Boolean, default=True, nullable=False)
+    subscription_plan = Column(String(50), default="trial", nullable=False)  # trial, basic, pro
+    subscription_expires_at = Column(DATETIME, nullable=True)
+
+    # Settings
+    amocrm_integration_enabled = Column(Boolean, default=False, nullable=False)
+
+    __table_args__ = (
+        Index("idx_users_email", "email"),
+        Index("idx_users_active", "is_active", "subscription_expires_at"),
+    )
+
+
 class AlertSettings(Base, TimestampMixin):
     """Alert settings for monitoring and notifications"""
     __tablename__ = "alert_settings"

@@ -153,6 +153,22 @@ try:
 except Exception as e:
     logger.warning(f"Failed to load settings router: {e}")
 
+# Include auth router
+try:
+    from .web.routers.auth import router as auth_router
+    app.include_router(auth_router)
+    logger.info("Auth router loaded")
+except Exception as e:
+    logger.warning(f"Failed to load auth router: {e}")
+
+# Include dashboard router
+try:
+    from .web.routers.dashboard import router as dashboard_router
+    app.include_router(dashboard_router)
+    logger.info("Dashboard router loaded")
+except Exception as e:
+    logger.warning(f"Failed to load dashboard router: {e}")
+
 
 # Request logging middleware
 @app.middleware("http")

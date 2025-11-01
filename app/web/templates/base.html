@@ -5,6 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Admin Dashboard{% endblock %} - SalesBot</title>
     <style>
+        /* Навигация */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            margin-bottom: 24px;
+        }
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+        }
+        .navbar-brand {
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .navbar-menu {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .navbar-menu a {
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .navbar-menu a:hover {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -232,6 +279,19 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- Навигация -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/admin/" class="navbar-brand">🤖 SalesBot</a>
+            <div class="navbar-menu">
+                <a href="/admin/">Дашборд</a>
+                <a href="/admin/manager">Менеджеры</a>
+                <a href="/admin/deals">Сделки</a>
+                <a href="/admin/settings">⚙️ Настройки</a>
+            </div>
+        </div>
+    </nav>
+
     {% block content %}{% endblock %}
 
     {% block extra_js %}{% endblock %}
