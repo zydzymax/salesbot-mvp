@@ -252,14 +252,68 @@ class ManagerCRUD:
         return result.rowcount > 0
     
     @staticmethod
-    async def get_active_managers(session: AsyncSession) -> List[Manager]:
-        """Get all active managers"""
-        result = await session.execute(
-            select(Manager)
-            .where(Manager.is_active == True)
-            .order_by(Manager.name)
-        )
+    async def get_active_managers(session: AsyncSession, monitored_only: bool = True) -> List[Manager]:
+        """
+        Get active managers
+
+        Args:
+            monitored_only: If True, returns only managers with is_monitored=True
+        """
+        query = select(Manager).where(Manager.is_active == True)
+
+        if monitored_only:
+            query = query.where(Manager.is_monitored == True)
+
+        query = query.order_by(Manager.name)
+        result = await session.execute(query)
         return result.scalars().all()
+
+
+class AlertSettingsCRUD:
+    """CRUD operations for AlertSettings model"""
+
+    @staticmethod
+    async def get_alert_settings(session: AsyncSession):
+        """Get alert settings (singleton)"""
+        from .models import AlertSettings
+        result = await session.execute(
+            select(AlertSettings).limit(1)
+        )
+        settings = result.scalar_one_or_none()
+
+        # Create default if not exists
+        if not settings:
+            settings = AlertSettings(id=1)
+            session.add(settings)
+            await session.commit()
+            await session.refresh(settings)
+
+        return settings
+
+    @staticmethod
+    async def update_alert_settings(
+        session: AsyncSession,
+        **kwargs
+    ) -> bool:
+        """Update alert settings"""
+        from .models import AlertSettings
+
+        # Get or create settings
+        result = await session.execute(
+            select(AlertSettings).limit(1)
+        )
+        settings = result.scalar_one_or_none()
+
+        if not settings:
+            settings = AlertSettings(id=1, **kwargs)
+            session.add(settings)
+        else:
+            for key, value in kwargs.items():
+                if hasattr(settings, key):
+                    setattr(settings, key, value)
+
+        await session.commit()
+        return True
 
 
 class AnalysisCacheCRUD:

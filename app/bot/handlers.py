@@ -111,7 +111,8 @@ async def handle_registration_name(message: Message, state: FSMContext):
     # Try to find manager in AmoCRM
     async with db_manager.get_session() as session:
         # Search by name (simplified - in production use better matching)
-        managers = await ManagerCRUD.get_active_managers(session)
+        # For linking Telegram need ALL managers, not just monitored
+        managers = await ManagerCRUD.get_active_managers(session, monitored_only=False)
         matched_manager = None
         
         for manager in managers:

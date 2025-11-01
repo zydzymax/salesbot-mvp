@@ -163,13 +163,13 @@ class LeadMonitoringService:
 
     async def get_manager_chat_id(self, responsible_user_id: int) -> Optional[str]:
         """
-        Get Telegram chat ID for responsible manager
+        Get Telegram chat ID for responsible manager (only if monitored)
 
         Args:
             responsible_user_id: AmoCRM user ID
 
         Returns:
-            Telegram chat ID or None
+            Telegram chat ID or None if manager not monitored
         """
         try:
             async with db_manager.get_session() as session:
@@ -179,8 +179,12 @@ class LeadMonitoringService:
                     session, str(responsible_user_id)
                 )
 
-                if manager and manager.telegram_chat_id:
+                # Check if manager is monitored and has Telegram
+                if manager and manager.is_monitored and manager.telegram_chat_id:
                     return manager.telegram_chat_id
+
+                if manager and not manager.is_monitored:
+                    logger.debug(f"Manager not monitored, skipping alert", user_id=responsible_user_id)
 
                 return None
 

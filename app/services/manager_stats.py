@@ -31,9 +31,9 @@ class ManagerStatsService:
             - last_call_date - дата последнего звонка
         """
         try:
-            # Получить всех активных менеджеров из БД
+            # Получить всех активных менеджеров из БД (для статистики нужны ВСЕ)
             async with db_manager.get_session() as session:
-                managers = await ManagerCRUD.get_active_managers(session)
+                managers = await ManagerCRUD.get_active_managers(session, monitored_only=False)
 
             if not managers:
                 return []

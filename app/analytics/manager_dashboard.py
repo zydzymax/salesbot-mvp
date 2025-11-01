@@ -139,7 +139,7 @@ class ManagerDashboard:
             # Получить всех менеджеров
             async with db_manager.get_session() as session:
                 from ..database.crud import ManagerCRUD
-                managers = await ManagerCRUD.get_active_managers(session)
+                managers = await ManagerCRUD.get_active_managers(session, monitored_only=False)  # For dashboard need all managers
 
             # Получить KPI для каждого
             team_kpi = []
@@ -198,7 +198,7 @@ class ManagerDashboard:
             # Получить всех менеджеров
             async with db_manager.get_session() as session:
                 from ..database.crud import ManagerCRUD
-                managers = await ManagerCRUD.get_active_managers(session)
+                managers = await ManagerCRUD.get_active_managers(session, monitored_only=False)  # For dashboard need all managers
 
             for manager in managers:
                 kpi = await self.get_manager_kpi(manager.id, period_days=7)

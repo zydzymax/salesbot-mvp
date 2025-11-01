@@ -54,16 +54,27 @@ class DealMonitor:
         Проанализировать все активные сделки
         """
         logger.info("Analyzing all active deals")
-        
+
         try:
-            # Получить всех менеджеров
+            # Проверить настройки алертов
             async with db_manager.get_session() as session:
-                managers = await ManagerCRUD.get_active_managers(session)
-            
+                from ..database.crud import AlertSettingsCRUD
+                alert_settings = await AlertSettingsCRUD.get_alert_settings(session)
+
+                # Проверить что алерты включены
+                if not alert_settings.send_daily_digest:
+                    logger.info("Daily digest disabled in settings, skipping")
+                    return
+
+                # Получить только мониторируемых менеджеров
+                managers = await ManagerCRUD.get_active_managers(session, monitored_only=True)
+
             if not managers:
-                logger.warning("No managers found")
+                logger.warning("No monitored managers found")
                 return
-            
+
+            logger.info(f"Found {len(managers)} monitored managers")
+
             # Анализировать сделки каждого менеджера
             for manager in managers:
                 try:
@@ -74,9 +85,9 @@ class DealMonitor:
                         manager_id=manager.id,
                         error=str(e)
                     )
-            
+
             logger.info("All deals analyzed successfully")
-            
+
         except Exception as e:
             logger.error(f"Failed to analyze all deals", error=str(e))
     
@@ -159,26 +170,29 @@ class DealMonitor:
             # Если нужно отправить уведомление
             if notify:
                 manager_id = deal_data.get("responsible_user_id")
-                
+
                 # Найти менеджера в базе
                 async with db_manager.get_session() as session:
                     manager = await ManagerCRUD.get_manager_by_amocrm_id(
                         session,
                         manager_id
                     )
-                
-                if manager and manager.telegram_chat_id:
+
+                # Проверить что менеджер мониторится и есть Telegram
+                if manager and manager.is_monitored and manager.telegram_chat_id:
                     message = coaching_formatter.format_deal_analysis(
                         analysis,
                         manager_name=manager.name
                     )
-                    
+
                     await send_message(
                         chat_id=manager.telegram_chat_id,
                         text=message
                     )
-                    
+
                     logger.info(f"Deal analysis sent to manager", deal_id=deal_id)
+                elif manager and not manager.is_monitored:
+                    logger.info(f"Manager not monitored, skipping notification", manager_id=manager.id)
             
             return analysis
             
@@ -191,12 +205,22 @@ class DealMonitor:
         Проверить застоявшиеся сделки (без активности N дней)
         """
         logger.info(f"Checking stale deals", days_threshold=days_threshold)
-        
+
         try:
-            # Получить всех менеджеров
+            # Проверить настройки и получить мониторируемых менеджеров
             async with db_manager.get_session() as session:
-                managers = await ManagerCRUD.get_active_managers(session)
-            
+                from ..database.crud import AlertSettingsCRUD
+                alert_settings = await AlertSettingsCRUD.get_alert_settings(session)
+
+                # Проверить что алерты на долгие сделки включены
+                if not alert_settings.notify_on_long_silence:
+                    logger.info("Long silence alerts disabled, skipping stale deals check")
+                    return
+
+                managers = await ManagerCRUD.get_active_managers(session, monitored_only=True)
+
+            logger.info(f"Checking stale deals for {len(managers)} monitored managers")
+
             for manager in managers:
                 if not manager.telegram_chat_id:
                     continue

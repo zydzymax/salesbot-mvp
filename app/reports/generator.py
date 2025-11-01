@@ -55,7 +55,7 @@ class ReportGenerator:
                 
             else:
                 # All managers report
-                managers = await ManagerCRUD.get_active_managers(session)
+                managers = await ManagerCRUD.get_active_managers(session, monitored_only=False)  # For stats need all managers
                 all_calls = []
                 
                 for manager in managers:
@@ -123,7 +123,7 @@ class ReportGenerator:
                 
             else:
                 # Team weekly report
-                managers = await ManagerCRUD.get_active_managers(session)
+                managers = await ManagerCRUD.get_active_managers(session, monitored_only=False)  # For stats need all managers
                 manager_stats = []
                 
                 for manager in managers:
