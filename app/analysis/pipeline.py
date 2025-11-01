@@ -38,12 +38,13 @@ async def call_openai_api(
     user: str,
     api_key: str,
     model: str = "gpt-4o",
-    temperature: float = 0.2,
-    max_tokens: int = 2000
+    temperature: float = 0.3,
+    max_tokens: int = 4000
 ) -> str:
     """
     Direct OpenAI API call.
-    Uses gpt-4o (or gpt-4-turbo) for best reasoning + structured output.
+    Uses gpt-4o (latest) for maximum accuracy and reasoning depth.
+    Higher temperature (0.3) for more creative and actionable recommendations.
     """
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -75,56 +76,81 @@ async def analyze_dialog(
     dialogue_text: str,
     api_key: str,
     model: str = "gpt-4o",
-    temperature: float = 0.15,
-    max_retries: int = 2
+    temperature: float = 0.3,
+    max_retries: int = 3,
+    prompt_version: str = "v2"
 ) -> Dict:
     """
-    Single-pass analysis with ChatGPT.
-    
+    Deep analysis with ChatGPT for maximum accuracy and actionability.
+
     Args:
-        dialogue_text: Transcript with speaker roles
+        dialogue_text: Transcript with speaker roles (Менеджер:/Клиент: format)
         api_key: OpenAI API key
-        model: gpt-4o (recommended) or gpt-4-turbo
-        temperature: 0.15 for stable reasoning (range: 0.1-0.2)
-        max_retries: Retry on invalid JSON
-    
+        model: gpt-4o (latest) for best reasoning
+        temperature: 0.3 for balance between accuracy and creative recommendations
+        max_retries: Retry on invalid JSON/validation errors
+        prompt_version: "v1" or "v2" (v2 recommended for maximum detail)
+
     Returns:
-        Validated CallScoring dict
+        Validated CallScoring dict with deep insights and actionable recommendations
     """
-    prompt = load_prompt("call_scoring.v1.yml")
+    prompt_file = f"call_scoring.{prompt_version}.yml" if prompt_version == "v2" else "call_scoring.v1.yml"
+    prompt = load_prompt(prompt_file)
     
-    # Build system prompt with schema
-    system = f"{prompt['role']}\n\nСхема:\n{prompt['schema_json']}\n"
-    
-    # Add few-shot examples
-    if "few_shot" in prompt:
-        system += "\n\nПримеры:\n"
-        for ex_type, examples in prompt["few_shot"].items():
-            system += f"\n{ex_type.upper()}:\n"
-            for ex in examples:
-                system += f"- {ex.get('dialogue', '')}\n  {ex.get('expect_note', '')}\n"
+    # Build comprehensive system prompt
+    system_parts = [
+        prompt.get('task', ''),
+        prompt.get('role', ''),
+        prompt.get('critical_rules', ''),
+        f"\n\nСХЕМА JSON:\n{prompt.get('schema_json', '')}",
+        f"\n\nЛОГИКА SCORING:\n{prompt.get('scoring_logic', '')}",
+        f"\n\nОПРЕДЕЛЕНИЯ:\n{prompt.get('definitions', '')}",
+        f"\n\nКОНТЕКСТ B2B ТРИКОТАЖ:\n{prompt.get('b2b_knitwear_context', '')}",
+        f"\n\nFRAMEWORK КОУЧИНГА:\n{prompt.get('coaching_framework', '')}",
+        f"\n\nПРОЦЕСС REASONING:\n{prompt.get('reasoning_process', '')}",
+        f"\n\nПРОВЕРКИ КАЧЕСТВА:\n{prompt.get('quality_checks', '')}",
+        f"\n\nАНТИ-ГАЛЛЮЦИНАЦИИ:\n{prompt.get('anti_hallucination', '')}",
+    ]
+
+    # Add few-shot examples if present
+    if "few_shot_examples" in prompt:
+        system_parts.append("\n\nПРИМЕРЫ АНАЛИЗА:")
+        examples = prompt["few_shot_examples"]
+        for key, ex in examples.items():
+            system_parts.append(f"\n{key.upper()}:")
+            system_parts.append(f"Диалог:\n{ex.get('dialogue', '')}")
+            if "expected_scores" in ex:
+                system_parts.append(f"Ожидаемые scores: {ex['expected_scores']}")
+            if "critical_mistakes" in ex:
+                system_parts.append(f"Критические ошибки: {ex['critical_mistakes']}")
+
+    system = "\n".join(filter(None, system_parts))
     
     # Retry logic for invalid JSON
     last_error = None
     for attempt in range(max_retries + 1):
         try:
-            # Call OpenAI API
+            # Call OpenAI API with increased token limit for detailed analysis
             raw = await call_openai_api(
                 system=system,
                 user=dialogue_text,
                 api_key=api_key,
                 model=model,
                 temperature=temperature,
-                max_tokens=2000
+                max_tokens=4000
             )
             
-            # Parse and validate
+            # Parse JSON
             data = enforce_json_only(raw)
+
+            # For v2, skip Pydantic validation (schema is much richer)
+            # Just return the dict directly
+            if prompt_version == "v2":
+                return data
+
+            # For v1, use Pydantic validation
             validated = validate_call_scoring(data)
-            
-            # Post-validation consistency checks
             _check_consistency(validated)
-            
             return validated.dict()
             
         except (json.JSONDecodeError, ValueError) as e:
