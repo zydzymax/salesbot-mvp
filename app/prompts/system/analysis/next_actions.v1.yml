@@ -1,0 +1,11 @@
+task: "Suggest 1–3 next actions bound to buying_stage."
+constraints:
+  - "Действия соответствуют стадии"
+  - "Формулировка: действие, владелец, срок"
+examples:
+  - stage: "evaluation"
+    next_actions:
+      - {"action":"request_specs","owner":"AM","due_days":2}
+      - {"action":"send_samples","owner":"AM","due_days":5}
+output_schema: |
+  {"next_actions":[{"action":"string","owner":"AM|Client","due_days":0}]}
