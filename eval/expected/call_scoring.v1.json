@@ -1,0 +1,7 @@
+{
+  "required_keys": [
+    "lead_profile","need_summary","buying_stage","budget","decision_maker",
+    "timeline","objections","risk_flags","next_actions","scores",
+    "evidence_spans","framework_signals","meta"
+  ]
+}
