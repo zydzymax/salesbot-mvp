@@ -37,13 +37,14 @@ async def call_openai_api(
     system: str,
     user: str,
     api_key: str,
-    model: str = "gpt-4o",
+    model: str = "chatgpt-4o-latest",
     temperature: float = 0.3,
     max_tokens: int = 4000
 ) -> str:
     """
     Direct OpenAI API call.
-    Uses gpt-4o (latest) for maximum accuracy and reasoning depth.
+    Uses chatgpt-4o-latest (LATEST GPT-4o) for MAXIMUM accuracy and reasoning depth.
+    This is the most powerful model available for chat/completions endpoint.
     Higher temperature (0.3) for more creative and actionable recommendations.
     """
     headers = {
@@ -75,18 +76,18 @@ async def call_openai_api(
 async def analyze_dialog(
     dialogue_text: str,
     api_key: str,
-    model: str = "gpt-4o",
+    model: str = "chatgpt-4o-latest",
     temperature: float = 0.3,
     max_retries: int = 3,
     prompt_version: str = "v2"
 ) -> Dict:
     """
-    Deep analysis with ChatGPT for maximum accuracy and actionability.
+    Deep analysis with ChatGPT-4o (latest) for MAXIMUM accuracy and actionability.
 
     Args:
         dialogue_text: Transcript with speaker roles (Менеджер:/Клиент: format)
         api_key: OpenAI API key
-        model: gpt-4o (latest) for best reasoning
+        model: chatgpt-4o-latest (LATEST GPT-4o - most powerful for chat) for best reasoning
         temperature: 0.3 for balance between accuracy and creative recommendations
         max_retries: Retry on invalid JSON/validation errors
         prompt_version: "v1" or "v2" (v2 recommended for maximum detail)

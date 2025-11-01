@@ -132,7 +132,7 @@ async def main():
         print("ШАГ 4: АНАЛИЗ С НОВЫМИ ПРОМПТАМИ (GPT-4o)")
         print("=" * 80)
         print("\nПараметры анализа (МАКСИМАЛЬНОЕ КАЧЕСТВО):")
-        print("  • Model: gpt-4o (latest)")
+        print("  • Model: chatgpt-4o-latest ⭐ (LATEST & MOST POWERFUL)")
         print("  • Temperature: 0.3 (баланс точность/креативность)")
         print("  • Prompt version: call_scoring.v2.yml (РАСШИРЕННЫЙ)")
         print("  • Max tokens: 4000 (детальный анализ)")
@@ -140,12 +140,12 @@ async def main():
         print("  • Response format: strict JSON")
         print("  • Includes: B2B context, coaching framework, scoring logic")
 
-        print("\n🔄 Запуск глубокого анализа...")
+        print("\n🔄 Запуск анализа с ChatGPT-4o (latest)...")
 
         analysis_result = await analyze_dialog(
             dialogue_text=dialogue_text,
             api_key=settings.openai_api_key,
-            model="gpt-4o",
+            model="chatgpt-4o-latest",
             temperature=0.3,
             max_retries=3,
             prompt_version="v2"
