@@ -112,3 +112,25 @@ temp/
 
 # OS files
 Thumbs.db
+# === security & env ===
+.env
+.env.*
+*.env
+*.env.*
+SERVER_INFO.txt
+*.pem
+*.key
+*.p12
+
+# === python ===
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# === os ===
+.DS_Store
+Thumbs.db
