@@ -131,21 +131,23 @@ async def main():
         print("\n" + "=" * 80)
         print("ШАГ 4: АНАЛИЗ С НОВЫМИ ПРОМПТАМИ (GPT-4o)")
         print("=" * 80)
-        print("\nПараметры анализа (МАКСИМАЛЬНОЕ КАЧЕСТВО):")
-        print("  • Model: chatgpt-4o-latest ⭐ (LATEST & MOST POWERFUL)")
+        print("\nПараметры анализа (МАКСИМАЛЬНОЕ КАЧЕСТВО - GPT-5!):")
+        print("  • Model: gpt-5-pro 🚀 (САМАЯ МОЩНАЯ МОДЕЛЬ)")
+        print("  • API: /v1/responses (новый endpoint)")
         print("  • Temperature: 0.3 (баланс точность/креативность)")
         print("  • Prompt version: call_scoring.v2.yml (РАСШИРЕННЫЙ)")
-        print("  • Max tokens: 4000 (детальный анализ)")
+        print("  • Reasoning: HIGH (сотни reasoning tokens)")
         print("  • Max retries: 3")
         print("  • Response format: strict JSON")
         print("  • Includes: B2B context, coaching framework, scoring logic")
 
-        print("\n🔄 Запуск анализа с ChatGPT-4o (latest)...")
+        print("\n🔄 Запуск анализа с GPT-5 Pro...")
+        print("⏳ GPT-5 использует deep reasoning - может занять 30-60 секунд...")
 
         analysis_result = await analyze_dialog(
             dialogue_text=dialogue_text,
             api_key=settings.openai_api_key,
-            model="chatgpt-4o-latest",
+            model="gpt-5-pro",
             temperature=0.3,
             max_retries=3,
             prompt_version="v2"

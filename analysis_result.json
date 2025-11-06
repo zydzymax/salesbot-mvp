@@ -1,0 +1,169 @@
+{
+  "lead_profile": {
+    "company": null,
+    "brand_stage": "established",
+    "category": "fashion",
+    "region": null,
+    "industry_segment": "fashion_brand"
+  },
+  "need_summary": "Клиент не рассматривает новых поставщиков, так как у них есть постоянные и запасные варианты. Объемы производства около 5000 единиц трикотажа в месяц, работают в среднем сегменте, ближе к масс-маркету.",
+  "buying_stage": "awareness",
+  "budget": {
+    "amount": null,
+    "currency": null,
+    "confidence": 0.5,
+    "source": null,
+    "status": "not_discussed",
+    "monthly_volume_units": 5000,
+    "price_per_unit_target": null
+  },
+  "decision_maker": {
+    "is_decision_maker": false,
+    "title": "Руководитель отдела закупок",
+    "influence_level": "gatekeeper",
+    "confidence": 0.8,
+    "approval_chain": "Руководитель отдела закупок, Андрей Петрович"
+  },
+  "timeline": {
+    "timing": "mid_term",
+    "specific_date": null,
+    "days_to_decision": 30,
+    "notes": "Связаться через две недели, так как сейчас аврал с текущей коллекцией."
+  },
+  "objections": [
+    {
+      "type": "trust",
+      "text": "Вы знаете, мы в принципе не рассматриваем, если честно. У нас есть постоянные поставщики.",
+      "manager_response": "А можем ли мы с вами остаться на связи, чтобы при необходимости вы знали о нас?",
+      "is_resolved": true,
+      "severity": "medium"
+    }
+  ],
+  "risk_flags": [
+    {
+      "type": "low_engagement",
+      "description": "Клиент не заинтересован в новых поставщиках, так как у них есть постоянные и запасные варианты.",
+      "severity": "medium",
+      "evidence": "Вы знаете, мы в принципе не рассматриваем, если честно. У нас есть постоянные поставщики."
+    }
+  ],
+  "next_actions": [
+    {
+      "action": "Отправить коммерческое предложение на почту zakaz@fashion-company.ru",
+      "reason": "Клиент согласился рассмотреть предложение и оставаться на связи.",
+      "priority": "high",
+      "deadline_days": 1,
+      "owner": "manager"
+    },
+    {
+      "action": "Связаться через две недели для обсуждения предложения",
+      "reason": "Клиент попросил связаться позже из-за текущей загруженности.",
+      "priority": "medium",
+      "deadline_days": 14,
+      "owner": "manager"
+    }
+  ],
+  "scores": {
+    "overall_quality": 65,
+    "objection_handling": 80,
+    "qualification_completeness": 50,
+    "closing_readiness": 40,
+    "lead_quality": 50
+  },
+  "sales_techniques_used": {
+    "needs_discovery": true,
+    "active_listening": true,
+    "value_proposition": true,
+    "objection_handling": true,
+    "next_step_commitment": true,
+    "rapport_building": true
+  },
+  "missed_opportunities": [
+    {
+      "area": "Уточнение бюджета",
+      "impact": "medium",
+      "recommendation": "В следующий раз уточнить бюджет, чтобы подготовить более точное предложение."
+    }
+  ],
+  "manager_strengths": [
+    "Хорошо проработала возражение клиента о наличии постоянных поставщиков.",
+    "Установила контакт и договорилась о следующем шаге."
+  ],
+  "manager_weaknesses": [
+    "Не выяснила бюджет, что могло бы помочь в подготовке более релевантного предложения."
+  ],
+  "coaching_recommendations": [
+    {
+      "topic": "Уточнение бюджета",
+      "specific_advice": "Спросите клиента о ценовом диапазоне, в котором они обычно работают, чтобы лучше подготовить предложение.",
+      "example_script": "Какой ценовой диапазон вы обычно рассматриваете для ваших заказов?"
+    }
+  ],
+  "evidence_spans": [
+    {
+      "quote": "Вы знаете, мы в принципе не рассматриваем, если честно. У нас есть постоянные поставщики.",
+      "category": "objection"
+    },
+    {
+      "quote": "Это наш руководитель отдела закупок, Андрей Петрович.",
+      "category": "decision_maker"
+    },
+    {
+      "quote": "Ну в среднем около 5000 единиц трикотажа.",
+      "category": "need"
+    },
+    {
+      "quote": "Да, можно. Позвоните недели через две, у нас сейчас аврал с текущей коллекцией.",
+      "category": "timeline"
+    }
+  ],
+  "framework_signals": {
+    "bant": {
+      "budget": false,
+      "authority": true,
+      "need": true,
+      "timeline": true
+    },
+    "spin": {
+      "situation_questions": [
+        "Подскажите, вы рассматриваете сейчас поставщиков для пошива одежды по вашим лекалам или на данный момент все устраивает?"
+      ],
+      "problem_questions": [],
+      "implication_questions": [],
+      "need_payoff_questions": []
+    },
+    "meddic": {
+      "metrics": false,
+      "economic_buyer": false,
+      "decision_criteria": false,
+      "decision_process": true,
+      "identify_pain": false,
+      "champion": false
+    }
+  },
+  "conversation_flow_analysis": {
+    "opening_quality": 8,
+    "discovery_depth": 6,
+    "presentation_relevance": 7,
+    "closing_strength": 5,
+    "overall_structure": 6
+  },
+  "recommended_follow_up": {
+    "timing": "через две недели",
+    "channel": "call",
+    "message_template": "Здравствуйте, это Ольга из Саваней. Хотела бы обсудить наше коммерческое предложение, которое мы отправили ранее. Удобно ли вам сейчас?",
+    "materials_to_send": [
+      "Коммерческое предложение"
+    ],
+    "talking_points": [
+      "Обсудить детали предложения",
+      "Уточнить возможные вопросы или возражения"
+    ]
+  },
+  "meta": {
+    "model": "GPT-5 Pro",
+    "prompt_version": "call_scoring.v2",
+    "lang": "ru",
+    "analysis_timestamp": "2023-10-25T12:00:00Z"
+  }
+}

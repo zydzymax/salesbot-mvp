@@ -33,6 +33,67 @@ def validate_call_scoring(data: Dict) -> CallScoring:
     """Validate against Pydantic schema"""
     return CallScoring(**data)
 
+async def call_gpt5_responses_api(
+    system: str,
+    user: str,
+    api_key: str,
+    model: str = "gpt-5-pro",
+    temperature: float = 0.3
+) -> str:
+    """
+    GPT-5 API call via /v1/responses endpoint.
+    Uses gpt-5-pro for MAXIMUM reasoning depth and accuracy.
+
+    GPT-5 features:
+    - Deep reasoning (hundreds of reasoning tokens)
+    - Superior accuracy for complex analysis
+    - Better understanding of nuanced B2B contexts
+    """
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    # Combine system and user into single input
+    # ВАЖНО: Для json_object формата ОБЯЗАТЕЛЬНО должно быть слово "json" в input
+    combined_input = f"{system}\n\n=== ЗАДАЧА ===\n{user}\n\nОТВЕТ В ФОРМАТЕ JSON:"
+
+    payload = {
+        "model": model,
+        "input": combined_input,
+        # GPT-5 does not support temperature parameter
+        "text": {
+            "format": {"type": "json_object"}  # Force JSON output
+        }
+    }
+
+    async with httpx.AsyncClient(timeout=600.0) as client:  # GPT-5 with deep reasoning can take 5-10 minutes
+        response = await client.post(
+            "https://api.openai.com/v1/responses",
+            headers=headers,
+            json=payload
+        )
+
+        # Log error details if request fails
+        if response.status_code != 200:
+            import structlog
+            logger = structlog.get_logger("salesbot.gpt5")
+            logger.error(f"GPT-5 API error: {response.status_code}", error_body=response.text[:500])
+
+        response.raise_for_status()
+        data = response.json()
+
+        # Extract text from output array
+        for item in data.get("output", []):
+            if item.get("type") == "message":
+                content = item.get("content", [])
+                for content_item in content:
+                    if content_item.get("type") == "output_text":
+                        return content_item.get("text", "")
+
+        raise ValueError("No text output found in GPT-5 response")
+
+
 async def call_openai_api(
     system: str,
     user: str,
@@ -42,16 +103,21 @@ async def call_openai_api(
     max_tokens: int = 4000
 ) -> str:
     """
-    Direct OpenAI API call.
-    Uses chatgpt-4o-latest (LATEST GPT-4o) for MAXIMUM accuracy and reasoning depth.
-    This is the most powerful model available for chat/completions endpoint.
-    Higher temperature (0.3) for more creative and actionable recommendations.
+    Universal OpenAI API call - routes to correct endpoint based on model.
+
+    GPT-5 models (gpt-5-pro, gpt-5-nano, etc) → /v1/responses endpoint
+    GPT-4 models (gpt-4o, chatgpt-4o-latest, etc) → /v1/chat/completions endpoint
     """
+    # Check if GPT-5 model - route to /v1/responses
+    if model.startswith("gpt-5"):
+        return await call_gpt5_responses_api(system, user, api_key, model, temperature)
+
+    # GPT-4 and older via chat/completions
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    
+
     payload = {
         "model": model,
         "messages": [
@@ -62,7 +128,7 @@ async def call_openai_api(
         "max_tokens": max_tokens,
         "response_format": {"type": "json_object"}  # Force JSON output
     }
-    
+
     async with httpx.AsyncClient(timeout=120.0) as client:
         response = await client.post(
             "https://api.openai.com/v1/chat/completions",
@@ -76,18 +142,19 @@ async def call_openai_api(
 async def analyze_dialog(
     dialogue_text: str,
     api_key: str,
-    model: str = "chatgpt-4o-latest",
+    model: str = "gpt-5-pro",
     temperature: float = 0.3,
     max_retries: int = 3,
     prompt_version: str = "v2"
 ) -> Dict:
     """
-    Deep analysis with ChatGPT-4o (latest) for MAXIMUM accuracy and actionability.
+    Deep analysis with GPT-5 Pro (or GPT-4o) for high-quality insights and recommendations.
 
     Args:
         dialogue_text: Transcript with speaker roles (Менеджер:/Клиент: format)
         api_key: OpenAI API key
-        model: chatgpt-4o-latest (LATEST GPT-4o - most powerful for chat) for best reasoning
+        model: gpt-5-pro (DEFAULT - most powerful for deep reasoning)
+              Can also use: chatgpt-4o-latest, gpt-4o, gpt-4-turbo
         temperature: 0.3 for balance between accuracy and creative recommendations
         max_retries: Retry on invalid JSON/validation errors
         prompt_version: "v1" or "v2" (v2 recommended for maximum detail)
