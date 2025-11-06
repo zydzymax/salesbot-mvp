@@ -1,10 +1,12 @@
 """
 Simplified pipeline for ChatGPT-only analysis.
 No orchestrator needed - single model handles everything.
+With caching support for cost optimization.
 """
 import json
 import pathlib
 import yaml
+import hashlib
 from typing import Dict, Optional
 import httpx
 from app.llm.validators import CallScoring
@@ -145,10 +147,12 @@ async def analyze_dialog(
     model: str = "gpt-5-pro",
     temperature: float = 0.3,
     max_retries: int = 3,
-    prompt_version: str = "v2"
+    prompt_version: str = "v2",
+    use_cache: bool = True
 ) -> Dict:
     """
     Deep analysis with GPT-5 Pro (or GPT-4o) for high-quality insights and recommendations.
+    With intelligent caching to avoid duplicate API calls and save costs.
 
     Args:
         dialogue_text: Transcript with speaker roles (Менеджер:/Клиент: format)
@@ -158,10 +162,29 @@ async def analyze_dialog(
         temperature: 0.3 for balance between accuracy and creative recommendations
         max_retries: Retry on invalid JSON/validation errors
         prompt_version: "v1" or "v2" (v2 recommended for maximum detail)
+        use_cache: Enable caching to save costs (default: True)
 
     Returns:
         Validated CallScoring dict with deep insights and actionable recommendations
     """
+    # Generate cache key based on dialogue + model + prompt version
+    cache_key = None
+    if use_cache:
+        cache_str = f"{dialogue_text}|{model}|{prompt_version}"
+        cache_key = hashlib.sha256(cache_str.encode()).hexdigest()
+
+        # Try to get from cache (simple file-based for now, can upgrade to Redis)
+        try:
+            cache_file = pathlib.Path(f".cache/analysis_{cache_key}.json")
+            if cache_file.exists():
+                import structlog
+                logger = structlog.get_logger("salesbot.pipeline")
+                logger.info("Cache hit - reusing previous analysis", cache_key=cache_key[:8])
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception:
+            pass  # Cache miss or error, continue with fresh analysis
+
     prompt_file = f"call_scoring.{prompt_version}.yml" if prompt_version == "v2" else "call_scoring.v1.yml"
     prompt = load_prompt(prompt_file)
     
@@ -210,6 +233,16 @@ async def analyze_dialog(
             
             # Parse JSON
             data = enforce_json_only(raw)
+
+            # Save to cache if enabled
+            if use_cache and cache_key:
+                try:
+                    cache_file = pathlib.Path(f".cache/analysis_{cache_key}.json")
+                    cache_file.parent.mkdir(parents=True, exist_ok=True)
+                    with open(cache_file, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass  # Cache save error is not critical
 
             # For v2, skip Pydantic validation (schema is much richer)
             # Just return the dict directly
