@@ -13,19 +13,51 @@ from app.config import get_settings
 from app.analysis.pipeline import analyze_dialog
 
 # ФИЛЬТРЫ ДЛЯ ИСКЛЮЧЕНИЯ АВТООТВЕТЧИКОВ
-MIN_DURATION_SECONDS = 60  # Минимум 1 минута
-MIN_TRANSCRIPT_LENGTH = 200  # Минимум 200 символов
+MIN_DURATION_SECONDS = 30  # Минимум 30 секунд (даже неудачный разговор)
+MIN_TRANSCRIPT_LENGTH = 100  # Минимум 100 символов (краткий обмен репликами)
 
-# Ключевые слова автоответчиков
+# Ключевые слова автоответчиков (только явные признаки)
 AUTORESPONDER_KEYWORDS = [
-    "недоступен",
-    "не могу ответить",
-    "перезвоните позже",
-    "оставьте сообщение",
+    "абонент недоступен",
+    "не могу ответить на ваш звонок",
+    "оставьте сообщение после",
     "голосовая почта",
     "абонент временно недоступен",
-    "находится вне зоны действия"
+    "находится вне зоны",
+    "автоответчик"
 ]
+
+# Дополнительная проверка: если очень короткая транскрипция И нет диалога
+def is_real_conversation(transcript: str, duration: int) -> bool:
+    """
+    Проверка что это реальный разговор, а не автоответчик
+
+    Считаем реальным если:
+    - Есть обмен репликами (несколько предложений)
+    - ИЛИ длительность > 30 сек И есть слова клиента
+    """
+    if not transcript:
+        return False
+
+    # Подсчитываем реплики/предложения
+    sentences = [s.strip() for s in transcript.split('.') if len(s.strip()) > 10]
+
+    # Если есть хотя бы 3 предложения - скорее всего реальный разговор
+    if len(sentences) >= 3:
+        return True
+
+    # Если звонок длинный (>45 сек) - даже с короткой транскрипцией стоит проанализировать
+    if duration > 45 and len(transcript) > 50:
+        return True
+
+    # Проверяем наличие вопросов (признак диалога)
+    question_words = ['как', 'что', 'где', 'когда', 'почему', 'сколько', '?']
+    has_questions = any(word in transcript.lower() for word in question_words)
+
+    if has_questions and len(sentences) >= 2:
+        return True
+
+    return False
 
 def is_autoresponder(transcript: str) -> bool:
     """Проверка на автоответчик"""
@@ -107,22 +139,22 @@ async def main():
     too_short_count = 0
 
     for call_id, duration, transcript, lead_id in calls:
-        # Фильтр 1: Длительность
+        # Фильтр 1: Явные автоответчики (ключевые слова)
+        if is_autoresponder(transcript):
+            print(f"  ⚠️  {call_id}: Пропущен (автоответчик)")
+            autoresponders_count += 1
+            continue
+
+        # Фильтр 2: Слишком короткие (меньше 30 сек)
         if duration < MIN_DURATION_SECONDS:
             print(f"  ⚠️  {call_id}: Пропущен (слишком короткий: {duration}с)")
             too_short_count += 1
             continue
 
-        # Фильтр 2: Длина транскрипции
-        if len(transcript) < MIN_TRANSCRIPT_LENGTH:
-            print(f"  ⚠️  {call_id}: Пропущен (короткая транскрипция: {len(transcript)} символов)")
+        # Фильтр 3: Проверка на реальный разговор
+        if not is_real_conversation(transcript, duration):
+            print(f"  ⚠️  {call_id}: Пропущен (не похоже на диалог: {duration}с, {len(transcript)} символов)")
             too_short_count += 1
-            continue
-
-        # Фильтр 3: Автоответчик
-        if is_autoresponder(transcript):
-            print(f"  ⚠️  {call_id}: Пропущен (автоответчик)")
-            autoresponders_count += 1
             continue
 
         filtered_calls.append((call_id, transcript, lead_id))
