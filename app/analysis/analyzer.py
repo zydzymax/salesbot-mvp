@@ -3,6 +3,7 @@ GPT-powered call analysis engine
 Structured analysis with caching and error handling
 """
 
+import asyncio
 import json
 from datetime import datetime
 from typing import Dict, Any, Optional, List

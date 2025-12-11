@@ -139,22 +139,22 @@ class CallCRUD:
         session: AsyncSession,
         call_id: UUID,
         status: AnalysisStatus,
-        result: Optional[Dict[str, Any]] = None,
+        analysis_result: Optional[Dict[str, Any]] = None,
         error: Optional[str] = None
     ) -> bool:
         """Update call analysis status and result"""
-        result = await session.execute(
+        db_result = await session.execute(
             update(Call)
             .where(Call.id == call_id)
             .values(
                 analysis_status=status,
-                analysis_result=result,
+                analysis_result=analysis_result,
                 analysis_error=error,
                 updated_at=datetime.utcnow()
             )
         )
         await session.commit()
-        return result.rowcount > 0
+        return db_result.rowcount > 0
     
     @staticmethod
     async def get_manager_calls(

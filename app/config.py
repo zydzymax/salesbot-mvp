@@ -5,7 +5,7 @@ Loads from .env file with validation and defaults
 
 import os
 from typing import Optional
-from pydantic import validator, Field, field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -74,20 +74,23 @@ class Settings(BaseSettings):
         description="Log files path"
     )
     
-    @validator("encryption_key")
-    def validate_encryption_key(cls, v):
+    @field_validator("encryption_key")
+    @classmethod
+    def validate_encryption_key(cls, v: str) -> str:
         if len(v) != 32:
             raise ValueError("Encryption key must be exactly 32 characters")
         return v
-    
-    @validator("environment")
-    def validate_environment(cls, v):
+
+    @field_validator("environment")
+    @classmethod
+    def validate_environment(cls, v: str) -> str:
         if v not in ["development", "production", "testing"]:
             raise ValueError("Environment must be development, production, or testing")
         return v
-    
-    @validator("log_level")
-    def validate_log_level(cls, v):
+
+    @field_validator("log_level")
+    @classmethod
+    def validate_log_level(cls, v: str) -> str:
         if v not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
             raise ValueError("Invalid log level")
         return v

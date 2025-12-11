@@ -92,13 +92,7 @@ async def init_database():
 async def get_db_session() -> AsyncSession:
     """Dependency for FastAPI routes"""
     async with db_manager.get_session() as session:
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+        yield session
 
 
 async def create_test_data():
