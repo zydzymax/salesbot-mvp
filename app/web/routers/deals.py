@@ -68,15 +68,26 @@ async def deals_list(request: Request):
                 leads = response.get("_embedded", {}).get("leads", [])
                 for lead in leads:
                     leads_data[str(lead["id"])] = lead.get("name", f"Сделка #{lead['id']}")
-            except:
+            except Exception as e:
                 # Если не удалось получить названия, используем ID
+                import structlog
+                structlog.get_logger().warning(f"Failed to fetch lead names: {e}")
                 for lead_id in batch:
                     leads_data[lead_id] = f"Сделка #{lead_id}"
 
-        for deal in deals:
-            manager = await ManagerCRUD.get_manager(session, deal.manager_id)
+        # Предзагружаем всех менеджеров одним запросом (fix N+1)
+        manager_ids = list(set([deal.manager_id for deal in deals if deal.manager_id]))
+        managers_stmt = select(Manager).where(
+            Manager.id.in_(manager_ids),
+            Manager.is_active == True
+        )
+        managers_result = await session.execute(managers_stmt)
+        managers_map = {m.id: m for m in managers_result.scalars().all()}
 
-            if manager and manager.is_active:
+        for deal in deals:
+            manager = managers_map.get(deal.manager_id)
+
+            if manager:
                 deal_data = {
                     'lead_id': deal.amocrm_lead_id,
                     'lead_name': leads_data.get(deal.amocrm_lead_id, f"Сделка #{deal.amocrm_lead_id}"),

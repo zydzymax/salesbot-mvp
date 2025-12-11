@@ -151,6 +151,7 @@ class Manager(Base, TimestampMixin):
     telegram_chat_id = Column(String(50), nullable=True, unique=True, index=True)
     is_active = Column(Boolean, default=True, nullable=False, index=True)
     is_monitored = Column(Boolean, default=True, nullable=False, index=True)  # Monitor by default
+    is_admin = Column(Boolean, default=False, nullable=False, index=True)  # Admin can access all data
 
     # Relationships
     calls = relationship("Call", back_populates="manager")

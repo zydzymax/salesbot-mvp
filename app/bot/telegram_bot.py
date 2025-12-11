@@ -141,6 +141,67 @@ async def send_analysis_result(
         return False
 
 
+async def send_reminder_message(chat_id: str, message: str) -> bool:
+    """
+    Send reminder message to user (for commitment tracking, task reminders, etc.)
+
+    Args:
+        chat_id: Telegram chat ID
+        message: Pre-formatted HTML message
+
+    Returns:
+        Success status
+    """
+    global bot
+
+    if not bot:
+        await initialize_bot()
+
+    if not bot:
+        logger.error("Bot not initialized, cannot send reminder")
+        return False
+
+    try:
+        await bot.send_message(
+            chat_id=chat_id,
+            text=message,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True
+        )
+        logger.info(f"Reminder sent to {chat_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send reminder: {e}")
+        return False
+
+
+async def send_alert(
+    chat_id: str,
+    title: str,
+    body: str,
+    urgency: str = "normal"
+) -> bool:
+    """
+    Send alert message with urgency level
+
+    Args:
+        chat_id: Telegram chat ID
+        title: Alert title
+        body: Alert body text
+        urgency: "low", "normal", "high", "critical"
+    """
+    urgency_emoji = {
+        "low": "ℹ️",
+        "normal": "📢",
+        "high": "⚠️",
+        "critical": "🚨"
+    }.get(urgency, "📢")
+
+    message = f"{urgency_emoji} <b>{title}</b>\n\n{body}"
+
+    return await send_message(chat_id, message, parse_mode=ParseMode.HTML)
+
+
 def format_daily_report(report_data: Dict[str, Any]) -> str:
     """Format daily report for Telegram"""
     date = report_data.get("date", "сегодня")

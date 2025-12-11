@@ -295,6 +295,7 @@ class DealPrioritizer:
                 from sqlalchemy import select, func
                 from ..database.models import Call
 
+                # Агрегация по всем звонкам
                 result = await session.execute(
                     select(
                         func.count(Call.id).label("count"),
@@ -303,11 +304,23 @@ class DealPrioritizer:
                 )
                 row = result.one_or_none()
 
+                # Получить sentiment из последнего анализа
+                sentiment = None
+                last_call = await session.execute(
+                    select(Call).where(
+                        Call.amocrm_lead_id == lead_id,
+                        Call.analysis_result.isnot(None)
+                    ).order_by(Call.created_at.desc()).limit(1)
+                )
+                last_call = last_call.scalar_one_or_none()
+                if last_call and last_call.analysis_result:
+                    sentiment = last_call.analysis_result.get("client_sentiment")
+
                 if row:
                     return {
                         "count": row.count or 0,
                         "avg_quality": float(row.avg_quality or 0),
-                        "sentiment": None  # TODO: Get from last analysis
+                        "sentiment": sentiment
                     }
 
         except Exception as e:

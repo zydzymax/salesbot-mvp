@@ -410,8 +410,7 @@ async def process_call_analysis(message: Message, call_id: str):
             return
         
         # Check if call belongs to this manager (or if admin)
-        if call.manager_id != manager.id:
-            # TODO: Add admin check
+        if call.manager_id != manager.id and not manager.is_admin:
             await message.answer("❌ У вас нет доступа к этому звонку")
             return
         
