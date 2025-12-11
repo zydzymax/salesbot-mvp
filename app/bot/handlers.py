@@ -44,7 +44,8 @@ def setup_handlers(dp: Dispatcher, bot: Bot):
     dp.message.register(analyze_command, Command("analyze"))
     dp.message.register(report_command, Command("report"))
     dp.message.register(chat_analysis_command, Command("chat"))
-    
+    dp.message.register(rop_dashboard_command, Command("rop"))
+
     # Text message handlers
     dp.message.register(handle_stats_request, F.text == "📊 Моя статистика")
     dp.message.register(handle_daily_report, F.text == "📋 Отчет за день")
@@ -300,6 +301,88 @@ async def chat_analysis_command(message: Message):
         await processing_msg.edit_text(
             f"❌ Ошибка при анализе: {str(e)}"
         )
+
+
+async def rop_dashboard_command(message: Message):
+    """
+    Handle /rop command - show ROP dashboard summary
+    Shows deal prioritization "traffic light" for managers
+    """
+    from ..analytics.deal_prioritizer import deal_prioritizer, DealPriority
+
+    user_id = str(message.from_user.id)
+
+    # Check if user is registered
+    async with db_manager.get_session() as session:
+        manager = await ManagerCRUD.get_manager_by_telegram_id(session, user_id)
+        if not manager:
+            await message.answer("❌ Сначала зарегистрируйтесь с помощью /start")
+            return
+
+    # Send processing message
+    processing_msg = await message.answer("⏳ Загружаю дашборд РОПа...")
+
+    try:
+        # Get summary stats
+        summary = await deal_prioritizer.get_summary_stats()
+
+        # Get top priority deals
+        deals = await deal_prioritizer.get_prioritized_deals(limit=10)
+
+        # Build message
+        text = "📊 <b>Дашборд РОПа</b>\n\n"
+
+        # Summary stats
+        text += "<b>Сводка по сделкам:</b>\n"
+        text += f"🔴 Требуют внимания: <b>{summary.get('critical_count', 0)}</b>\n"
+        text += f"🟡 Есть риски: <b>{summary.get('warning_count', 0)}</b>\n"
+        text += f"🔥 Горячие: <b>{summary.get('hot_count', 0)}</b>\n"
+        text += f"🟢 В порядке: <b>{summary.get('normal_count', 0)}</b>\n\n"
+
+        text += f"💰 Общий бюджет: <b>{summary.get('total_budget', 0):,.0f} ₽</b>\n"
+        text += f"📞 Ср. качество звонков: <b>{summary.get('avg_quality', 0)}</b>/100\n"
+        text += f"⚠️ Без активности: <b>{summary.get('deals_without_activity', 0)}</b>\n\n"
+
+        # Top priority deals
+        if deals:
+            text += "<b>Топ-10 приоритетных сделок:</b>\n\n"
+
+            for i, deal in enumerate(deals[:10], 1):
+                priority = deal.get('priority')
+                if isinstance(priority, DealPriority):
+                    priority = priority.value
+
+                emoji = {
+                    'critical': '🔴',
+                    'warning': '🟡',
+                    'hot': '🔥',
+                    'normal': '🟢'
+                }.get(priority, '⚪')
+
+                name = deal.get('lead_name', f"Сделка #{deal.get('lead_id')}")
+                if len(name) > 25:
+                    name = name[:22] + "..."
+
+                budget = deal.get('budget', 0)
+                manager_name = deal.get('manager_name', 'Н/Д')
+
+                text += f"{emoji} <b>{name}</b>\n"
+                text += f"   👤 {manager_name} | 💰 {budget:,.0f}₽\n"
+
+                # Show first alert if any
+                alerts = deal.get('alerts', [])
+                if alerts:
+                    text += f"   ⚠️ {alerts[0].get('message', '')}\n"
+
+                text += "\n"
+
+        text += "🔗 <a href='https://app.justbusiness.lol/admin/rop/'>Открыть полный дашборд</a>"
+
+        await processing_msg.edit_text(text, disable_web_page_preview=True)
+
+    except Exception as e:
+        logger.error(f"ROP dashboard command error: {e}")
+        await processing_msg.edit_text(f"❌ Ошибка: {str(e)}")
 
 
 async def handle_analyze_call_id(message: Message, state: FSMContext):

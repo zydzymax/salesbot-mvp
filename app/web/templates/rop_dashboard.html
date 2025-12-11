@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block title %}Дашборд РОПа{% endblock %}
+
+{% block extra_css %}
+<style>
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .summary-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .summary-card.critical {
+        border-left: 4px solid #e53e3e;
+    }
+
+    .summary-card.warning {
+        border-left: 4px solid #dd6b20;
+    }
+
+    .summary-card.hot {
+        border-left: 4px solid #d69e2e;
+    }
+
+    .summary-card.normal {
+        border-left: 4px solid #38a169;
+    }
+
+    .summary-number {
+        font-size: 36px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .summary-card.critical .summary-number { color: #e53e3e; }
+    .summary-card.warning .summary-number { color: #dd6b20; }
+    .summary-card.hot .summary-number { color: #d69e2e; }
+    .summary-card.normal .summary-number { color: #38a169; }
+
+    .summary-label {
+        color: #718096;
+        font-size: 14px;
+    }
+
+    .filter-bar {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .filter-bar select {
+        padding: 8px 15px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        min-width: 200px;
+    }
+
+    .deals-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .deal-row {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 20px;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .deal-row:hover {
+        transform: translateX(5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .priority-indicator {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+
+    .priority-critical { background: #fed7d7; }
+    .priority-warning { background: #feebc8; }
+    .priority-hot { background: #faf089; }
+    .priority-normal { background: #c6f6d5; }
+
+    .deal-info {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .deal-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .deal-meta-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        font-size: 14px;
+        color: #718096;
+    }
+
+    .deal-meta-row span {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .alerts-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 5px;
+    }
+
+    .alert-badge {
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .alert-critical {
+        background: #fed7d7;
+        color: #c53030;
+    }
+
+    .alert-warning {
+        background: #feebc8;
+        color: #c05621;
+    }
+
+    .alert-info {
+        background: #bee3f8;
+        color: #2b6cb0;
+    }
+
+    .deal-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+    }
+
+    .budget-tag {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .next-action {
+        font-size: 13px;
+        color: #4a5568;
+        background: #edf2f7;
+        padding: 6px 12px;
+        border-radius: 8px;
+        max-width: 200px;
+        text-align: right;
+    }
+
+    .quality-score {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .quality-bar {
+        width: 60px;
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .quality-fill {
+        height: 100%;
+        border-radius: 4px;
+    }
+
+    .quality-high { background: #38a169; }
+    .quality-medium { background: #dd6b20; }
+    .quality-low { background: #e53e3e; }
+
+    .manager-section {
+        margin-bottom: 40px;
+    }
+
+    .manager-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        margin-bottom: 15px;
+    }
+
+    .manager-stats {
+        display: flex;
+        gap: 20px;
+    }
+
+    .manager-stat {
+        text-align: center;
+    }
+
+    .manager-stat-value {
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .manager-stat-label {
+        font-size: 12px;
+        opacity: 0.9;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #718096;
+    }
+
+    .empty-state h3 {
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #4299e1;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .refresh-btn {
+        background: #4299e1;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .refresh-btn:hover {
+        background: #3182ce;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <a href="/admin/" class="back-link">← Вернуться в дашборд</a>
+
+    <div class="header">
+        <h1>📊 Дашборд РОПа</h1>
+        <p>Приоритизация сделок и мониторинг менеджеров</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="summary-card critical">
+            <div class="summary-number">{{ summary.critical_count }}</div>
+            <div class="summary-label">🔴 Требуют внимания</div>
+        </div>
+        <div class="summary-card warning">
+            <div class="summary-number">{{ summary.warning_count }}</div>
+            <div class="summary-label">🟡 Есть риски</div>
+        </div>
+        <div class="summary-card hot">
+            <div class="summary-number">{{ summary.hot_count }}</div>
+            <div class="summary-label">🔥 Горячие</div>
+        </div>
+        <div class="summary-card normal">
+            <div class="summary-number">{{ summary.normal_count }}</div>
+            <div class="summary-label">🟢 В порядке</div>
+        </div>
+        <div class="summary-card" style="border-left: 4px solid #667eea;">
+            <div class="summary-number" style="color: #667eea;">{{ "{:,.0f}".format(summary.total_budget).replace(",", " ") }} ₽</div>
+            <div class="summary-label">💰 Общий бюджет</div>
+        </div>
+        <div class="summary-card" style="border-left: 4px solid #805ad5;">
+            <div class="summary-number" style="color: #805ad5;">{{ summary.avg_quality }}</div>
+            <div class="summary-label">📞 Ср. качество звонков</div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <label><strong>Фильтр:</strong></label>
+        <select id="managerFilter" onchange="filterByManager(this.value)">
+            <option value="">Все менеджеры</option>
+            {% for manager in managers %}
+            <option value="{{ manager.id }}" {% if selected_manager_id == manager.id %}selected{% endif %}>
+                {{ manager.name }}
+            </option>
+            {% endfor %}
+        </select>
+        <button class="refresh-btn" onclick="location.reload()">
+            🔄 Обновить
+        </button>
+    </div>
+
+    <!-- Deals List -->
+    {% if deals %}
+    <div class="deals-list">
+        {% for deal in deals %}
+        <div class="deal-row" onclick="location.href='/admin/deals/{{ deal.lead_id }}'">
+            <!-- Priority Indicator -->
+            <div class="priority-indicator priority-{{ deal.priority }}">
+                {% if deal.priority == 'critical' %}🔴
+                {% elif deal.priority == 'warning' %}🟡
+                {% elif deal.priority == 'hot' %}🔥
+                {% else %}🟢{% endif %}
+            </div>
+
+            <!-- Deal Info -->
+            <div class="deal-info">
+                <div class="deal-name">{{ deal.lead_name }}</div>
+                <div class="deal-meta-row">
+                    <span>👤 {{ deal.manager_name }}</span>
+                    <span>📅 {{ deal.days_in_stage }} дн. на этапе</span>
+                    <span>📞 {{ deal.calls_count }} звонков</span>
+                    <span class="quality-score">
+                        Качество:
+                        <div class="quality-bar">
+                            <div class="quality-fill {% if deal.avg_quality >= 70 %}quality-high{% elif deal.avg_quality >= 50 %}quality-medium{% else %}quality-low{% endif %}"
+                                 style="width: {{ deal.avg_quality }}%"></div>
+                        </div>
+                        {{ deal.avg_quality|round(0)|int }}%
+                    </span>
+                </div>
+
+                {% if deal.alerts %}
+                <div class="alerts-list">
+                    {% for alert in deal.alerts %}
+                    <span class="alert-badge alert-{{ alert.severity }}">
+                        {{ alert.message }}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Actions -->
+            <div class="deal-actions">
+                {% if deal.budget > 0 %}
+                <div class="budget-tag">{{ "{:,.0f}".format(deal.budget).replace(",", " ") }} ₽</div>
+                {% endif %}
+                {% if deal.next_action %}
+                <div class="next-action">💡 {{ deal.next_action }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>🎉 Нет активных сделок</h3>
+        <p>Все сделки обработаны или нет данных для отображения</p>
+    </div>
+    {% endif %}
+
+    <!-- Manager Stats Section -->
+    {% if summary.by_manager %}
+    <h2 style="margin-top: 40px; margin-bottom: 20px; color: #2d3748;">📈 Статистика по менеджерам</h2>
+    {% for manager_name, stats in summary.by_manager.items() %}
+    <div class="manager-section">
+        <div class="manager-header">
+            <h3 style="margin: 0;">👤 {{ manager_name }}</h3>
+            <div class="manager-stats">
+                <div class="manager-stat">
+                    <div class="manager-stat-value">{{ stats.total }}</div>
+                    <div class="manager-stat-label">Сделок</div>
+                </div>
+                <div class="manager-stat">
+                    <div class="manager-stat-value">{{ stats.critical }}</div>
+                    <div class="manager-stat-label">🔴 Критич.</div>
+                </div>
+                <div class="manager-stat">
+                    <div class="manager-stat-value">{{ stats.warning }}</div>
+                    <div class="manager-stat-label">🟡 Риски</div>
+                </div>
+                <div class="manager-stat">
+                    <div class="manager-stat-value">{{ stats.hot }}</div>
+                    <div class="manager-stat-label">🔥 Горячие</div>
+                </div>
+                <div class="manager-stat">
+                    <div class="manager-stat-value">{{ "{:,.0f}".format(stats.budget).replace(",", " ") }} ₽</div>
+                    <div class="manager-stat-label">Бюджет</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+
+<script>
+function filterByManager(managerId) {
+    if (managerId) {
+        window.location.href = '/admin/rop/?manager_id=' + managerId;
+    } else {
+        window.location.href = '/admin/rop/';
+    }
+}
+</script>
+{% endblock %}

@@ -153,6 +153,14 @@ try:
 except Exception as e:
     logger.warning(f"Failed to load settings router: {e}")
 
+# Include ROP dashboard router
+try:
+    from .web.routers.rop_dashboard import router as rop_router
+    app.include_router(rop_router, prefix="/admin")
+    logger.info("ROP dashboard router loaded")
+except Exception as e:
+    logger.warning(f"Failed to load ROP dashboard router: {e}")
+
 # Include auth router
 try:
     from .web.routers.auth import router as auth_router
