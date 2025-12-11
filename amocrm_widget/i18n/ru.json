@@ -1,0 +1,73 @@
+{
+  "widget": {
+    "name": "Sales Whisper РОП",
+    "description": "AI-ассистент для руководителя отдела продаж. Анализирует звонки, выявляет проблемные сделки, дает рекомендации по повышению конверсии. Превратите данные в прибыль!",
+    "short_description": "AI-анализ звонков и сделок для РОПа"
+  },
+  "settings": {
+    "api_url": "URL API сервера",
+    "api_url_help": "Адрес вашего сервера Sales Whisper",
+    "api_key": "API ключ",
+    "api_key_help": "Секретный ключ для доступа к API",
+    "test_connection": "Проверить подключение",
+    "connection_ok": "Подключение успешно!",
+    "connection_failed": "Ошибка подключения",
+    "connection_error": "Виджет не подключен к серверу. Проверьте настройки.",
+    "connected": "Виджет подключен и работает",
+    "testing": "Проверка..."
+  },
+  "settings_subtitle": "AI-помощник руководителя продаж",
+  "features_title": "Возможности виджета",
+  "feature_1": "Автоматический анализ качества звонков",
+  "feature_2": "Выявление проблемных сделок",
+  "feature_3": "Персональные рекомендации по каждой сделке",
+  "feature_4": "Отслеживание обязательств клиентов и менеджеров",
+  "feature_5": "Анализ эмоциональной динамики разговоров",
+  "documentation": "Документация",
+  "loading": "Загрузка анализа...",
+  "refresh": "Обновить",
+  "retry": "Повторить",
+  "quality_score": "Оценка качества",
+  "ai_analysis": "AI-анализ",
+  "next_action": "Следующий шаг",
+  "recommendations": "Рекомендации",
+  "create_task": "Создать задачу",
+  "task_created": "Задача создана",
+  "commitments": "Обязательства",
+  "recent_calls": "Последние звонки",
+  "last_updated": "Обновлено",
+  "total_calls": "Звонков",
+  "avg_quality": "Средняя оценка",
+  "sentiment_dynamics": "Динамика настроения",
+  "first_contact": "Первый контакт",
+  "latest": "Последний",
+  "key_topics": "Ключевые темы",
+  "call_details": "Детали звонка",
+  "quality_scores": "Оценки качества",
+  "emotion_dynamics": "Эмоциональная динамика",
+  "call_start": "Начало",
+  "call_end": "Конец",
+  "ai_insights": "AI-выводы",
+  "strengths": "Сильные стороны",
+  "weaknesses": "Слабые стороны",
+  "objections_handled": "Работа с возражениями",
+  "manager_response": "Ответ менеджера",
+  "effectiveness": "Эффективность",
+  "transcription": "Транскрипция",
+  "dp": {
+    "settings": {
+      "enabled": "Включить в Digital Pipeline"
+    }
+  },
+  "notification": {
+    "analysis_started": "Анализ запущен",
+    "task_created": "Задача создана в AmoCRM"
+  },
+  "error": {
+    "load_failed": "Не удалось загрузить данные",
+    "analysis_failed": "Ошибка при запуске анализа",
+    "task_failed": "Не удалось создать задачу",
+    "settings_required": "Заполните все обязательные поля",
+    "invalid_url": "Некорректный URL (должен начинаться с http:// или https://)"
+  }
+}

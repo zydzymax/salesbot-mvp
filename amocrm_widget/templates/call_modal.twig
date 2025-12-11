@@ -1,0 +1,132 @@
+<div class="salesbot-modal">
+    <!-- Header -->
+    <div class="salesbot-modal-header">
+        <h2>&#128222; {{ widget.langs.call_details }}</h2>
+        <div>
+            {% if call.created_at %}{{ call.created_at }}{% endif %}
+            {% if call.duration %} &bull; {{ call.duration }}{% endif %}
+        </div>
+    </div>
+
+    <div class="salesbot-modal-body">
+        <!-- Scores Grid -->
+        {% if scores %}
+        <div class="salesbot-modal-section">
+            <h4>&#128200; {{ widget.langs.quality_scores }}</h4>
+            <div class="salesbot-scores-grid">
+                {% for name, score in scores %}
+                <div class="salesbot-score-item">
+                    <div class="name">{{ name }}</div>
+                    <div class="score {% if score >= 80 %}excellent{% elseif score >= 60 %}good{% elseif score >= 40 %}average{% else %}poor{% endif %}" style="color: {% if score >= 80 %}#4caf50{% elseif score >= 60 %}#8bc34a{% elseif score >= 40 %}#ff9800{% else %}#f44336{% endif %}">
+                        {{ score }}
+                    </div>
+                    <div class="salesbot-progress">
+                        <div class="salesbot-progress-bar {% if score >= 80 %}excellent{% elseif score >= 60 %}good{% elseif score >= 40 %}average{% else %}poor{% endif %}" style="width: {{ score }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Sentiment Timeline -->
+        {% if sentiment_timeline|length > 0 %}
+        <div class="salesbot-modal-section">
+            <h4>&#128150; {{ widget.langs.emotion_dynamics }}</h4>
+            <div class="salesbot-sentiment-timeline" style="height: 80px;">
+                {% for item in sentiment_timeline %}
+                <div class="bar {{ item.sentiment }}" style="height: {{ item.intensity }}%;" title="{{ item.emotion }}: {{ item.intensity }}%"></div>
+                {% endfor %}
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 5px;">
+                <span>{{ widget.langs.call_start }}</span>
+                <span>{{ widget.langs.call_end }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- AI Analysis -->
+        {% if analysis %}
+        <div class="salesbot-modal-section">
+            <h4>&#128161; {{ widget.langs.ai_insights }}</h4>
+
+            {% if analysis.summary %}
+            <p style="margin-bottom: 15px;">{{ analysis.summary }}</p>
+            {% endif %}
+
+            {% if analysis.strengths|length > 0 %}
+            <div style="margin-bottom: 10px;">
+                <strong style="color: #4caf50;">&#10004; {{ widget.langs.strengths }}:</strong>
+                <ul style="margin: 5px 0 0 20px;">
+                    {% for item in analysis.strengths %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if analysis.weaknesses|length > 0 %}
+            <div style="margin-bottom: 10px;">
+                <strong style="color: #f44336;">&#10006; {{ widget.langs.weaknesses }}:</strong>
+                <ul style="margin: 5px 0 0 20px;">
+                    {% for item in analysis.weaknesses %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Objections -->
+        {% if objections|length > 0 %}
+        <div class="salesbot-modal-section">
+            <h4>&#128170; {{ widget.langs.objections_handled }}</h4>
+            {% for obj in objections %}
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                <div style="font-weight: 600; margin-bottom: 5px;">&#128172; {{ obj.objection }}</div>
+                {% if obj.response %}
+                <div style="color: #666; font-size: 12px;">
+                    <strong>{{ widget.langs.manager_response }}:</strong> {{ obj.response }}
+                </div>
+                {% endif %}
+                {% if obj.effectiveness %}
+                <div style="margin-top: 5px;">
+                    <span style="font-size: 11px; padding: 2px 6px; border-radius: 3px; background: {% if obj.effectiveness >= 70 %}#e8f5e9; color: #2e7d32{% elseif obj.effectiveness >= 40 %}#fff3e0; color: #ef6c00{% else %}#ffebee; color: #c62828{% endif %}">
+                        {{ widget.langs.effectiveness }}: {{ obj.effectiveness }}%
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Recommendations -->
+        {% if recommendations|length > 0 %}
+        <div class="salesbot-modal-section">
+            <h4>&#128073; {{ widget.langs.recommendations }}</h4>
+            <ul class="salesbot-recommendations">
+                {% for rec in recommendations %}
+                <li>
+                    <div class="icon">&#128161;</div>
+                    <div class="content">
+                        <div class="title">{{ rec }}</div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Transcription -->
+        {% if transcription %}
+        <div class="salesbot-modal-section">
+            <h4>&#128196; {{ widget.langs.transcription }}</h4>
+            <div class="salesbot-transcription">
+                {{ transcription|nl2br }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>

@@ -1,0 +1,147 @@
+<div class="salesbot-widget">
+    <!-- Header -->
+    <div class="salesbot-header">
+        <h3>Sales Whisper</h3>
+        <button class="refresh-btn js-salesbot-refresh" data-lead-id="{{ lead_id }}">
+            <span class="icon">&#8635;</span> {{ widget.langs.refresh }}
+        </button>
+    </div>
+
+    <!-- Score & Priority -->
+    <div class="salesbot-score">
+        <div class="salesbot-score-circle {% if quality_score >= 80 %}excellent{% elseif quality_score >= 60 %}good{% elseif quality_score >= 40 %}average{% else %}poor{% endif %}">
+            {{ quality_score }}
+        </div>
+        <div class="salesbot-score-details">
+            <div class="salesbot-score-label">{{ widget.langs.quality_score }}</div>
+            <div class="salesbot-score-value">
+                <span class="salesbot-priority {{ priority }}">{{ priority|upper }}</span>
+                <span class="salesbot-sentiment {{ sentiment }}">
+                    <span class="emoji">{% if sentiment == 'positive' %}&#128522;{% elseif sentiment == 'negative' %}&#128543;{% else %}&#128528;{% endif %}</span>
+                    {{ sentiment }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Analysis Summary -->
+    {% if analysis %}
+    <div class="salesbot-section">
+        <div class="salesbot-section-header js-salesbot-toggle">
+            <h4>&#128161; {{ widget.langs.ai_analysis }}</h4>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="salesbot-section-content">
+            {% if analysis.summary %}
+            <p>{{ analysis.summary }}</p>
+            {% endif %}
+
+            {% if analysis.next_best_action %}
+            <div style="margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 4px;">
+                <strong>&#127919; {{ widget.langs.next_action }}:</strong><br>
+                {{ analysis.next_best_action }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recommendations -->
+    {% if recommendations|length > 0 %}
+    <div class="salesbot-section">
+        <div class="salesbot-section-header js-salesbot-toggle">
+            <h4>&#128073; {{ widget.langs.recommendations }} ({{ recommendations|length }})</h4>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="salesbot-section-content">
+            <ul class="salesbot-recommendations">
+                {% for rec in recommendations %}
+                <li>
+                    <div class="icon">{{ loop.index }}</div>
+                    <div class="content">
+                        <div class="title">{{ rec.title }}</div>
+                        {% if rec.description %}
+                        <div class="description">{{ rec.description }}</div>
+                        {% endif %}
+                        {% if rec.can_create_task %}
+                        <button class="action-btn js-salesbot-create-task"
+                                data-lead-id="{{ lead_id }}"
+                                data-task-text="{{ rec.task_text|default(rec.title) }}"
+                                data-deadline-days="{{ rec.deadline_days|default(1) }}">
+                            &#128203; {{ widget.langs.create_task }}
+                        </button>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Commitments -->
+    {% if commitments|length > 0 %}
+    <div class="salesbot-section">
+        <div class="salesbot-section-header js-salesbot-toggle">
+            <h4>&#128221; {{ widget.langs.commitments }} ({{ commitments|length }})</h4>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="salesbot-section-content">
+            <ul class="salesbot-commitments">
+                {% for commitment in commitments %}
+                <li>
+                    <div class="commitment-header">
+                        <span class="owner {{ commitment.owner }}">
+                            {% if commitment.owner == 'client' %}&#128100;{% else %}&#128188;{% endif %}
+                            {{ commitment.owner }}
+                        </span>
+                        <span class="deadline {% if commitment.is_overdue %}overdue{% endif %}">
+                            {% if commitment.deadline %}
+                                {% if commitment.is_overdue %}&#9888; {% endif %}
+                                {{ commitment.deadline }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="text">{{ commitment.description }}</div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Calls -->
+    {% if calls|length > 0 %}
+    <div class="salesbot-section">
+        <div class="salesbot-section-header js-salesbot-toggle">
+            <h4>&#128222; {{ widget.langs.recent_calls }} ({{ calls|length }})</h4>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="salesbot-section-content">
+            <ul class="salesbot-calls">
+                {% for call in calls %}
+                <li class="js-salesbot-view-call" data-call-id="{{ call.id }}">
+                    <div class="call-score {% if call.quality_score >= 80 %}excellent{% elseif call.quality_score >= 60 %}good{% elseif call.quality_score >= 40 %}average{% else %}poor{% endif %}">
+                        {{ call.quality_score|default(0) }}
+                    </div>
+                    <div class="call-info">
+                        <div class="call-date">{{ call.created_at }}</div>
+                        <div class="call-duration">{{ call.duration }}</div>
+                    </div>
+                    <div class="call-sentiment">
+                        {% if call.sentiment == 'positive' %}&#128522;{% elseif call.sentiment == 'negative' %}&#128543;{% else %}&#128528;{% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    {% if last_updated %}
+    <div style="padding: 10px 15px; font-size: 11px; color: #999; text-align: center;">
+        {{ widget.langs.last_updated }}: {{ last_updated }}
+    </div>
+    {% endif %}
+</div>

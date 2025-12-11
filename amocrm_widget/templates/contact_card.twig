@@ -1,0 +1,58 @@
+<div class="salesbot-widget">
+    <!-- Header -->
+    <div class="salesbot-header">
+        <h3>Sales Whisper</h3>
+    </div>
+
+    <!-- Stats -->
+    <div class="salesbot-stats">
+        <div class="salesbot-stat">
+            <div class="value">{{ total_calls }}</div>
+            <div class="label">{{ widget.langs.total_calls }}</div>
+        </div>
+        <div class="salesbot-stat">
+            <div class="value">{{ avg_quality }}</div>
+            <div class="label">{{ widget.langs.avg_quality }}</div>
+        </div>
+    </div>
+
+    <!-- Sentiment History -->
+    {% if sentiment_history|length > 0 %}
+    <div class="salesbot-section">
+        <div class="salesbot-section-header js-salesbot-toggle">
+            <h4>&#128200; {{ widget.langs.sentiment_dynamics }}</h4>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="salesbot-section-content">
+            <div class="salesbot-sentiment-timeline">
+                {% for item in sentiment_history %}
+                <div class="bar {{ item.sentiment }}" style="height: {{ item.score }}%;"></div>
+                {% endfor %}
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 5px;">
+                <span>{{ widget.langs.first_contact }}</span>
+                <span>{{ widget.langs.latest }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Key Topics -->
+    {% if key_topics|length > 0 %}
+    <div class="salesbot-section">
+        <div class="salesbot-section-header js-salesbot-toggle">
+            <h4>&#127991; {{ widget.langs.key_topics }}</h4>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="salesbot-section-content">
+            <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                {% for topic in key_topics %}
+                <span style="background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 12px; font-size: 12px;">
+                    {{ topic }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>

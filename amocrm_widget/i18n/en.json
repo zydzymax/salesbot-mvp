@@ -1,0 +1,73 @@
+{
+  "widget": {
+    "name": "Sales Whisper ROP",
+    "description": "AI assistant for sales managers. Analyzes calls, identifies problem deals, provides recommendations to increase conversion. Turn data into profit!",
+    "short_description": "AI call & deal analysis for sales managers"
+  },
+  "settings": {
+    "api_url": "API Server URL",
+    "api_url_help": "Your Sales Whisper server address",
+    "api_key": "API Key",
+    "api_key_help": "Secret key for API access",
+    "test_connection": "Test Connection",
+    "connection_ok": "Connection successful!",
+    "connection_failed": "Connection failed",
+    "connection_error": "Widget is not connected to server. Check settings.",
+    "connected": "Widget is connected and working",
+    "testing": "Testing..."
+  },
+  "settings_subtitle": "AI Sales Manager Assistant",
+  "features_title": "Widget Features",
+  "feature_1": "Automatic call quality analysis",
+  "feature_2": "Problem deal detection",
+  "feature_3": "Personalized recommendations for each deal",
+  "feature_4": "Client and manager commitment tracking",
+  "feature_5": "Conversation emotion dynamics analysis",
+  "documentation": "Documentation",
+  "loading": "Loading analysis...",
+  "refresh": "Refresh",
+  "retry": "Retry",
+  "quality_score": "Quality Score",
+  "ai_analysis": "AI Analysis",
+  "next_action": "Next Step",
+  "recommendations": "Recommendations",
+  "create_task": "Create Task",
+  "task_created": "Task Created",
+  "commitments": "Commitments",
+  "recent_calls": "Recent Calls",
+  "last_updated": "Updated",
+  "total_calls": "Total Calls",
+  "avg_quality": "Avg Quality",
+  "sentiment_dynamics": "Sentiment Dynamics",
+  "first_contact": "First Contact",
+  "latest": "Latest",
+  "key_topics": "Key Topics",
+  "call_details": "Call Details",
+  "quality_scores": "Quality Scores",
+  "emotion_dynamics": "Emotion Dynamics",
+  "call_start": "Start",
+  "call_end": "End",
+  "ai_insights": "AI Insights",
+  "strengths": "Strengths",
+  "weaknesses": "Areas for Improvement",
+  "objections_handled": "Objection Handling",
+  "manager_response": "Manager Response",
+  "effectiveness": "Effectiveness",
+  "transcription": "Transcription",
+  "dp": {
+    "settings": {
+      "enabled": "Enable in Digital Pipeline"
+    }
+  },
+  "notification": {
+    "analysis_started": "Analysis started",
+    "task_created": "Task created in AmoCRM"
+  },
+  "error": {
+    "load_failed": "Failed to load data",
+    "analysis_failed": "Analysis failed to start",
+    "task_failed": "Failed to create task",
+    "settings_required": "Please fill in all required fields",
+    "invalid_url": "Invalid URL (must start with http:// or https://)"
+  }
+}

@@ -161,6 +161,14 @@ try:
 except Exception as e:
     logger.warning(f"Failed to load ROP dashboard router: {e}")
 
+# Include Widget API router (for AmoCRM widget)
+try:
+    from .web.routers.widget_api import router as widget_router
+    app.include_router(widget_router, prefix="/api")
+    logger.info("Widget API router loaded")
+except Exception as e:
+    logger.warning(f"Failed to load widget API router: {e}")
+
 # Include auth router
 try:
     from .web.routers.auth import router as auth_router

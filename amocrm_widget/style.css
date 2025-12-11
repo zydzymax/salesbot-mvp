@@ -1,0 +1,687 @@
+/**
+ * SalesBot Widget Styles for AmoCRM/Kommo
+ */
+
+/* Widget Panel */
+.salesbot-widget {
+    font-family: 'PT Sans', Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #333;
+}
+
+/* Loading State */
+.salesbot-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    color: #999;
+}
+
+.salesbot-loading .spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #e1e1e1;
+    border-top-color: #4c8bf5;
+    border-radius: 50%;
+    animation: salesbot-spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+@keyframes salesbot-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Error State */
+.salesbot-error {
+    padding: 20px;
+    text-align: center;
+    color: #d9534f;
+}
+
+.salesbot-error .icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+/* Header */
+.salesbot-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #4c8bf5 0%, #3a7bd5 100%);
+    color: #fff;
+    border-radius: 4px 4px 0 0;
+}
+
+.salesbot-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.salesbot-header .refresh-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+}
+
+.salesbot-header .refresh-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.salesbot-header .refresh-btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Priority Badge */
+.salesbot-priority {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.salesbot-priority.critical {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.salesbot-priority.warning {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+.salesbot-priority.hot {
+    background: #fff8e1;
+    color: #f9a825;
+}
+
+.salesbot-priority.normal {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+/* Score Display */
+.salesbot-score {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.salesbot-score-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    margin-right: 15px;
+}
+
+.salesbot-score-circle.excellent {
+    background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+    color: #fff;
+}
+
+.salesbot-score-circle.good {
+    background: linear-gradient(135deg, #8bc34a 0%, #cddc39 100%);
+    color: #fff;
+}
+
+.salesbot-score-circle.average {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    color: #fff;
+}
+
+.salesbot-score-circle.poor {
+    background: linear-gradient(135deg, #ff9800 0%, #f44336 100%);
+    color: #fff;
+}
+
+.salesbot-score-details {
+    flex: 1;
+}
+
+.salesbot-score-label {
+    font-size: 11px;
+    color: #999;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+
+.salesbot-score-value {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Sentiment Indicator */
+.salesbot-sentiment {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.salesbot-sentiment.positive {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.salesbot-sentiment.neutral {
+    background: #f5f5f5;
+    color: #757575;
+}
+
+.salesbot-sentiment.negative {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.salesbot-sentiment .emoji {
+    margin-right: 5px;
+}
+
+/* Section */
+.salesbot-section {
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.salesbot-section:last-child {
+    border-bottom: none;
+}
+
+.salesbot-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background: #fafafa;
+    cursor: pointer;
+    user-select: none;
+}
+
+.salesbot-section-header:hover {
+    background: #f5f5f5;
+}
+
+.salesbot-section-header h4 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+}
+
+.salesbot-section-header .toggle-icon {
+    transition: transform 0.2s;
+}
+
+.salesbot-section.collapsed .salesbot-section-header .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.salesbot-section-content {
+    padding: 15px;
+}
+
+.salesbot-section.collapsed .salesbot-section-content {
+    display: none;
+}
+
+/* Recommendations List */
+.salesbot-recommendations {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.salesbot-recommendations li {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.salesbot-recommendations li:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.salesbot-recommendations .icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e3f2fd;
+    color: #1976d2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    flex-shrink: 0;
+    font-size: 12px;
+}
+
+.salesbot-recommendations .content {
+    flex: 1;
+}
+
+.salesbot-recommendations .title {
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+
+.salesbot-recommendations .description {
+    font-size: 12px;
+    color: #666;
+}
+
+.salesbot-recommendations .action-btn {
+    background: #4c8bf5;
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s;
+}
+
+.salesbot-recommendations .action-btn:hover {
+    background: #3a7bd5;
+}
+
+.salesbot-recommendations .action-btn.created {
+    background: #4caf50;
+    pointer-events: none;
+}
+
+/* Calls List */
+.salesbot-calls {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.salesbot-calls li {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.salesbot-calls li:hover {
+    background: #f8f9fa;
+    margin: 0 -15px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.salesbot-calls li:last-child {
+    border-bottom: none;
+}
+
+.salesbot-calls .call-score {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.salesbot-calls .call-info {
+    flex: 1;
+}
+
+.salesbot-calls .call-date {
+    font-size: 12px;
+    color: #999;
+}
+
+.salesbot-calls .call-duration {
+    font-size: 11px;
+    color: #999;
+}
+
+.salesbot-calls .call-sentiment {
+    font-size: 16px;
+}
+
+/* Commitments */
+.salesbot-commitments {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.salesbot-commitments li {
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.salesbot-commitments li:last-child {
+    border-bottom: none;
+}
+
+.salesbot-commitments .commitment-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.salesbot-commitments .owner {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.salesbot-commitments .owner.client {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.salesbot-commitments .owner.manager {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.salesbot-commitments .deadline {
+    font-size: 11px;
+    color: #999;
+}
+
+.salesbot-commitments .deadline.overdue {
+    color: #c62828;
+    font-weight: 600;
+}
+
+.salesbot-commitments .text {
+    font-size: 13px;
+}
+
+/* Progress Bar */
+.salesbot-progress {
+    height: 6px;
+    background: #e1e1e1;
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.salesbot-progress-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.salesbot-progress-bar.excellent {
+    background: linear-gradient(90deg, #4caf50 0%, #8bc34a 100%);
+}
+
+.salesbot-progress-bar.good {
+    background: linear-gradient(90deg, #8bc34a 0%, #cddc39 100%);
+}
+
+.salesbot-progress-bar.average {
+    background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%);
+}
+
+.salesbot-progress-bar.poor {
+    background: linear-gradient(90deg, #ff9800 0%, #f44336 100%);
+}
+
+/* Stats Grid */
+.salesbot-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 15px;
+}
+
+.salesbot-stat {
+    text-align: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.salesbot-stat .value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #333;
+}
+
+.salesbot-stat .label {
+    font-size: 11px;
+    color: #999;
+    text-transform: uppercase;
+}
+
+/* Modal Styles */
+.salesbot-call-modal {
+    max-width: 800px;
+}
+
+.salesbot-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #4c8bf5 0%, #3a7bd5 100%);
+    color: #fff;
+}
+
+.salesbot-modal-header h2 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.salesbot-modal-body {
+    padding: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.salesbot-modal-section {
+    margin-bottom: 20px;
+}
+
+.salesbot-modal-section h4 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e1e1e1;
+    padding-bottom: 8px;
+}
+
+/* Transcription */
+.salesbot-transcription {
+    background: #f8f9fa;
+    border-radius: 4px;
+    padding: 15px;
+    font-size: 13px;
+    line-height: 1.6;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.salesbot-transcription .speaker {
+    font-weight: 600;
+    color: #4c8bf5;
+}
+
+.salesbot-transcription .speaker.client {
+    color: #7b1fa2;
+}
+
+/* Sentiment Timeline */
+.salesbot-sentiment-timeline {
+    display: flex;
+    align-items: flex-end;
+    height: 60px;
+    gap: 2px;
+}
+
+.salesbot-sentiment-timeline .bar {
+    flex: 1;
+    border-radius: 2px 2px 0 0;
+    min-height: 4px;
+    transition: height 0.3s;
+}
+
+.salesbot-sentiment-timeline .bar.positive {
+    background: #4caf50;
+}
+
+.salesbot-sentiment-timeline .bar.neutral {
+    background: #9e9e9e;
+}
+
+.salesbot-sentiment-timeline .bar.negative {
+    background: #f44336;
+}
+
+/* Scores Grid */
+.salesbot-scores-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.salesbot-score-item {
+    background: #f8f9fa;
+    border-radius: 4px;
+    padding: 12px;
+}
+
+.salesbot-score-item .name {
+    font-size: 11px;
+    color: #999;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.salesbot-score-item .score {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+/* Settings Page */
+.salesbot-settings {
+    padding: 20px;
+}
+
+.salesbot-settings .form-group {
+    margin-bottom: 20px;
+}
+
+.salesbot-settings label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.salesbot-settings input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.salesbot-settings input[type="text"]:focus {
+    border-color: #4c8bf5;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(76, 139, 245, 0.1);
+}
+
+.salesbot-settings .help-text {
+    font-size: 11px;
+    color: #999;
+    margin-top: 5px;
+}
+
+.salesbot-settings .test-connection {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e1e1e1;
+}
+
+.salesbot-settings .test-btn {
+    background: #4c8bf5;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.salesbot-settings .test-btn:hover {
+    background: #3a7bd5;
+}
+
+.salesbot-settings .connection-status {
+    font-size: 13px;
+}
+
+.salesbot-settings .connection-status.success {
+    color: #4caf50;
+}
+
+.salesbot-settings .connection-status.error {
+    color: #f44336;
+}
+
+/* Animations */
+@keyframes salesbot-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.salesbot-loading .text {
+    animation: salesbot-pulse 1.5s ease-in-out infinite;
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+    .salesbot-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .salesbot-scores-grid {
+        grid-template-columns: 1fr;
+    }
+}

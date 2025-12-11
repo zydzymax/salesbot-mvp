@@ -1,0 +1,51 @@
+{
+  "widget": {
+    "name": "widget.name",
+    "description": "widget.description",
+    "short_description": "widget.short_description",
+    "code": "saleswhisper_rop",
+    "secret_key": "GENERATE_YOUR_SECRET_KEY_HERE",
+    "version": "1.0.0",
+    "interface_version": 2,
+    "init_once": false,
+    "locale": ["ru", "en"],
+    "installation": true,
+    "support": {
+      "link": "https://saleswhisper.pro",
+      "email": "support@saleswhisper.pro"
+    }
+  },
+  "locations": [
+    "lcard-1",
+    "ccard-1",
+    "settings",
+    "advanced_settings",
+    "digital_pipeline"
+  ],
+  "settings": {
+    "api_url": {
+      "name": "settings.api_url",
+      "type": "text",
+      "required": true
+    },
+    "api_key": {
+      "name": "settings.api_key",
+      "type": "text",
+      "required": true
+    }
+  },
+  "dp": {
+    "settings": {
+      "dp_widget_enabled": {
+        "name": "dp.settings.enabled",
+        "type": "checkbox",
+        "default_value": true
+      }
+    }
+  },
+  "images": {
+    "logo": "/images/logo.svg",
+    "logo_medium": "/images/logo_medium.svg",
+    "logo_small": "/images/logo_small.svg"
+  }
+}
