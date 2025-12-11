@@ -13,6 +13,7 @@ from pathlib import Path
 from ...database.init_db import db_manager
 from ...database.crud import CallCRUD, ManagerCRUD
 from ...database.models import Call, Manager
+from ...analysis.chat_analyzer import chat_analyzer
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -167,3 +168,63 @@ async def deal_detail(request: Request, lead_id: str):
             "deal_analysis": deal_analysis  # Профессиональный анализ
         }
     )
+
+
+@router.get("/{lead_id}/chat-analysis")
+async def analyze_deal_chat(lead_id: str) -> Dict[str, Any]:
+    """
+    Анализ переписки по сделке
+
+    Получает все сообщения (SMS, WhatsApp, email, чаты) из AmoCRM
+    и анализирует качество коммуникации менеджера.
+    """
+    try:
+        result = await chat_analyzer.analyze_deal_messages(
+            lead_id=lead_id,
+            include_calls=False  # Только переписка, без звонков
+        )
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{lead_id}/chat-analysis")
+async def analyze_custom_chat(
+    lead_id: str,
+    messages: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """
+    Анализ произвольной переписки
+
+    Body: [
+        {"text": "Текст сообщения", "direction": "in/out", "timestamp": 1234567890, "channel": "whatsapp"},
+        ...
+    ]
+    """
+    from ...amocrm.client import amocrm_client
+
+    try:
+        # Получить контекст сделки
+        deal_context = None
+        try:
+            lead = await amocrm_client.get_lead(lead_id)
+            if lead:
+                deal_context = {
+                    "budget": lead.get("price"),
+                    "stage": lead.get("status_id"),
+                    "product": lead.get("name")
+                }
+        except:
+            pass
+
+        result = await chat_analyzer.analyze_conversation(
+            messages=messages,
+            deal_context=deal_context
+        )
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

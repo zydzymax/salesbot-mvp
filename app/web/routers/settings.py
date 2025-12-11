@@ -5,12 +5,14 @@ Settings Router - Управление настройками и монитор�
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any
 from pathlib import Path
 
 from ...database.init_db import db_manager
 from ...database.models import Manager, AlertSettings
+from ...utils.runtime_settings import runtime_settings, AVAILABLE_MODELS
+from ...utils.api_budget import api_budget
 from sqlalchemy import select, update
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -172,3 +174,150 @@ async def update_alert_settings(data: AlertSettingsUpdate):
         await session.refresh(settings)
 
     return {"status": "success", "settings": update_data}
+
+
+# ============================================
+# AI Model Settings
+# ============================================
+
+class ModelChangeRequest(BaseModel):
+    """Request to change OpenAI model"""
+    model: str = Field(..., description="Model ID (e.g., gpt-4o, gpt-5.1)")
+
+
+class BudgetLimitsRequest(BaseModel):
+    """Request to update budget limits"""
+    daily_limit: Optional[float] = Field(None, ge=1.0, le=1000.0)
+    monthly_limit: Optional[float] = Field(None, ge=10.0, le=10000.0)
+
+
+@router.get("/ai")
+async def get_ai_settings() -> Dict[str, Any]:
+    """Получить настройки AI (модель, бюджет)"""
+
+    current_model = await runtime_settings.get_model()
+    budget_limits = await runtime_settings.get_budget_limits()
+    budget_status = api_budget.get_budget_status()
+
+    return {
+        "model": {
+            "current": current_model,
+            "info": AVAILABLE_MODELS.get(current_model, {}),
+            "available": AVAILABLE_MODELS
+        },
+        "budget": {
+            "limits": budget_limits,
+            "status": budget_status
+        }
+    }
+
+
+@router.get("/ai/models")
+async def get_available_models() -> Dict[str, Any]:
+    """Получить список доступных моделей OpenAI"""
+
+    current = await runtime_settings.get_model()
+
+    return {
+        "current_model": current,
+        "models": [
+            {
+                "id": model_id,
+                "name": info["name"],
+                "description": info["description"],
+                "cost_input": info["cost_per_1k_input"],
+                "cost_output": info["cost_per_1k_output"],
+                "recommended": info.get("recommended", False),
+                "premium": info.get("premium", False),
+                "selected": model_id == current
+            }
+            for model_id, info in AVAILABLE_MODELS.items()
+        ]
+    }
+
+
+@router.post("/ai/model")
+async def change_ai_model(data: ModelChangeRequest) -> Dict[str, Any]:
+    """Изменить модель OpenAI для анализа"""
+
+    if data.model not in AVAILABLE_MODELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Недопустимая модель. Доступные: {list(AVAILABLE_MODELS.keys())}"
+        )
+
+    success = await runtime_settings.set_model(data.model, updated_by="admin")
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Не удалось обновить модель")
+
+    model_info = AVAILABLE_MODELS[data.model]
+
+    return {
+        "success": True,
+        "model": data.model,
+        "name": model_info["name"],
+        "description": model_info["description"],
+        "message": f"Модель изменена на {model_info['name']}"
+    }
+
+
+@router.get("/ai/budget")
+async def get_budget_status() -> Dict[str, Any]:
+    """Получить статус бюджета API"""
+
+    limits = await runtime_settings.get_budget_limits()
+    status = api_budget.get_budget_status()
+
+    return {
+        "limits": limits,
+        "daily": {
+            "spent": status["daily"]["spent"],
+            "limit": status["daily"]["limit"],
+            "remaining": status["daily"]["remaining"],
+            "percent_used": round(status["daily"]["percent_used"], 1)
+        },
+        "monthly": {
+            "spent": status["monthly"]["spent"],
+            "limit": status["monthly"]["limit"],
+            "remaining": status["monthly"]["remaining"],
+            "percent_used": round(status["monthly"]["percent_used"], 1)
+        },
+        "total_requests": status["total_requests"],
+        "total_spent": round(status["total_spent"], 2)
+    }
+
+
+@router.post("/ai/budget")
+async def update_budget_limits(data: BudgetLimitsRequest) -> Dict[str, Any]:
+    """Обновить лимиты бюджета"""
+
+    success = await runtime_settings.set_budget_limits(
+        daily=data.daily_limit,
+        monthly=data.monthly_limit,
+        updated_by="admin"
+    )
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Не удалось обновить лимиты")
+
+    new_limits = await runtime_settings.get_budget_limits()
+
+    return {
+        "success": True,
+        "limits": new_limits,
+        "message": "Лимиты бюджета обновлены"
+    }
+
+
+@router.post("/ai/budget/reset")
+async def reset_daily_budget() -> Dict[str, Any]:
+    """Сбросить дневной счётчик бюджета"""
+
+    api_budget.reset_daily_limit()
+
+    return {
+        "success": True,
+        "message": "Дневной счётчик сброшен",
+        "status": api_budget.get_budget_status()
+    }

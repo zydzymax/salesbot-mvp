@@ -43,6 +43,7 @@ def setup_handlers(dp: Dispatcher, bot: Bot):
     dp.message.register(stats_command, Command("stats"))
     dp.message.register(analyze_command, Command("analyze"))
     dp.message.register(report_command, Command("report"))
+    dp.message.register(chat_analysis_command, Command("chat"))
     
     # Text message handlers
     dp.message.register(handle_stats_request, F.text == "📊 Моя статистика")
@@ -185,7 +186,7 @@ async def analyze_command(message: Message, state: FSMContext):
     """Handle /analyze command"""
     # Check if call ID provided
     args = message.text.split()[1:] if len(message.text.split()) > 1 else []
-    
+
     if args:
         call_id = args[0]
         await process_call_analysis(message, call_id)
@@ -195,6 +196,110 @@ async def analyze_command(message: Message, state: FSMContext):
             "Введите ID звонка из AmoCRM для анализа:"
         )
         await state.set_state(AnalysisStates.waiting_for_call_id)
+
+
+async def chat_analysis_command(message: Message):
+    """
+    Handle /chat command - analyze chat messages for a deal
+    Usage: /chat <lead_id>
+    """
+    from ..analysis.chat_analyzer import chat_analyzer
+
+    args = message.text.split()[1:] if len(message.text.split()) > 1 else []
+
+    if not args:
+        await message.answer(
+            "💬 <b>Анализ переписки</b>\n\n"
+            "Использование: <code>/chat ID_СДЕЛКИ</code>\n\n"
+            "Пример: <code>/chat 12345678</code>\n\n"
+            "Анализирует все сообщения (WhatsApp, SMS, email) по сделке из AmoCRM."
+        )
+        return
+
+    lead_id = args[0]
+
+    # Send processing message
+    processing_msg = await message.answer(
+        f"⏳ Анализирую переписку по сделке #{lead_id}...\n"
+        "Это может занять несколько секунд."
+    )
+
+    try:
+        # Get chat analysis
+        result = await chat_analyzer.analyze_deal_messages(
+            lead_id=lead_id,
+            include_calls=False
+        )
+
+        if not result.get("success"):
+            await processing_msg.edit_text(
+                f"❌ {result.get('error', 'Не удалось проанализировать переписку')}\n\n"
+                "Возможно, по этой сделке нет сообщений в AmoCRM."
+            )
+            return
+
+        # Format response
+        stats = result.get("stats", {})
+        analysis = result.get("analysis", {})
+        scores = analysis.get("scores", {})
+
+        # Build message
+        text = f"💬 <b>Анализ переписки</b>\n"
+        text += f"📋 Сделка: #{lead_id}\n\n"
+
+        # Stats
+        text += f"📊 <b>Статистика:</b>\n"
+        text += f"• Всего сообщений: {stats.get('total_messages', 0)}\n"
+        text += f"• От менеджера: {stats.get('outgoing_count', 0)}\n"
+        text += f"• От клиента: {stats.get('incoming_count', 0)}\n"
+        if stats.get('avg_response_time_minutes'):
+            text += f"• Среднее время ответа: {stats['avg_response_time_minutes']} мин\n"
+        text += "\n"
+
+        # Client status
+        sentiment_emoji = {
+            "positive": "😊", "interested": "🤔", "neutral": "😐",
+            "hesitant": "😟", "negative": "😠"
+        }
+        readiness_emoji = {"hot": "🔥", "warm": "🌡️", "cold": "❄️"}
+
+        sentiment = analysis.get("client_sentiment", "neutral")
+        readiness = analysis.get("client_readiness", "cold")
+
+        text += f"👤 <b>Клиент:</b> {sentiment_emoji.get(sentiment, '')} {sentiment} "
+        text += f"| {readiness_emoji.get(readiness, '')} {readiness}\n\n"
+
+        # Scores
+        text += f"📈 <b>Оценки:</b>\n"
+        score_names = {
+            "response_speed": "Скорость ответов",
+            "communication_quality": "Качество общения",
+            "needs_identification": "Выявление потребностей",
+            "objection_handling": "Работа с возражениями",
+            "deal_progress": "Продвижение к сделке",
+            "overall": "⭐ Общая оценка"
+        }
+        for key, name in score_names.items():
+            score = scores.get(key, 0)
+            bar = "█" * (score // 10) + "░" * (10 - score // 10)
+            text += f"• {name}: {bar} {score}/100\n"
+        text += "\n"
+
+        # Summary
+        if analysis.get("summary"):
+            text += f"📝 <b>Резюме:</b>\n{analysis['summary']}\n\n"
+
+        # Next action
+        if analysis.get("next_best_action"):
+            text += f"🎯 <b>Следующий шаг:</b>\n{analysis['next_best_action']}\n"
+
+        await processing_msg.edit_text(text)
+
+    except Exception as e:
+        logger.error(f"Chat analysis command error: {e}")
+        await processing_msg.edit_text(
+            f"❌ Ошибка при анализе: {str(e)}"
+        )
 
 
 async def handle_analyze_call_id(message: Message, state: FSMContext):

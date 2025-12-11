@@ -36,6 +36,36 @@
         .nav { background: white; padding: 16px 24px; border-radius: 12px; margin-bottom: 24px; }
         .nav a { color: #4299e1; text-decoration: none; margin-right: 20px; font-weight: 500; }
         .nav a:hover { color: #3182ce; }
+
+        /* AI Model Cards */
+        .model-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .model-card:hover { border-color: #4299e1; background: #f7fafc; }
+        .model-card.selected { border-color: #4299e1; background: #ebf8ff; }
+        .model-card.premium { border-color: #d69e2e; }
+        .model-card.premium.selected { background: #fefcbf; }
+        .model-name { font-weight: 600; font-size: 16px; color: #2d3748; margin-bottom: 4px; }
+        .model-desc { font-size: 13px; color: #718096; margin-bottom: 8px; }
+        .model-cost { font-size: 12px; color: #a0aec0; }
+        .model-badge {
+            position: absolute;
+            top: -8px;
+            right: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-recommended { background: #48bb78; color: white; }
+        .badge-premium { background: #d69e2e; color: white; }
+        .badge-selected { background: #4299e1; color: white; }
     </style>
 </head>
 <body>
@@ -50,6 +80,56 @@
         </div>
 
         <div id="successMessage" class="success-message">✓ Настройки успешно сохранены!</div>
+
+        <!-- AI Model Settings -->
+        <div class="card">
+            <div class="card-title">🤖 Настройки AI-модели</div>
+            <p style="color: #718096; margin-bottom: 16px; font-size: 14px;">Выберите модель OpenAI для анализа звонков и коучинга</p>
+
+            <div class="model-grid" id="modelGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <!-- Models loaded dynamically -->
+                <div style="padding: 20px; text-align: center; color: #718096;">Загрузка моделей...</div>
+            </div>
+
+            <div style="margin-top: 24px; padding: 16px; background: #f7fafc; border-radius: 8px;">
+                <div class="card-title" style="font-size: 16px;">💰 Статус бюджета API</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 12px;">
+                    <div>
+                        <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Сегодня</div>
+                        <div id="dailyBudget" style="font-size: 18px; font-weight: 600; color: #2d3748;">$0.00 / $15.00</div>
+                        <div class="progress-bar" style="margin-top: 8px; height: 6px; background: #e2e8f0; border-radius: 3px;">
+                            <div id="dailyProgress" style="height: 100%; background: #48bb78; border-radius: 3px; width: 0%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Этот месяц</div>
+                        <div id="monthlyBudget" style="font-size: 18px; font-weight: 600; color: #2d3748;">$0.00 / $150.00</div>
+                        <div class="progress-bar" style="margin-top: 8px; height: 6px; background: #e2e8f0; border-radius: 3px;">
+                            <div id="monthlyProgress" style="height: 100%; background: #4299e1; border-radius: 3px; width: 0%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Всего запросов</div>
+                        <div id="totalRequests" style="font-size: 18px; font-weight: 600; color: #2d3748;">0</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+                    <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
+                        <label style="font-size: 12px;">Дневной лимит ($)</label>
+                        <input type="number" id="dailyLimit" value="15" min="1" max="1000" step="1" style="padding: 8px 12px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
+                        <label style="font-size: 12px;">Месячный лимит ($)</label>
+                        <input type="number" id="monthlyLimit" value="150" min="10" max="10000" step="10" style="padding: 8px 12px;">
+                    </div>
+                    <div style="display: flex; align-items: flex-end; gap: 8px;">
+                        <button class="btn btn-primary" onclick="saveBudgetLimits()" style="padding: 8px 16px;">Сохранить лимиты</button>
+                        <button class="btn btn-secondary" onclick="resetDailyBudget()" style="padding: 8px 16px;">Сбросить день</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Выбор менеджеров для мониторинга -->
         <div class="card">
@@ -204,6 +284,165 @@
             msg.style.display = 'block';
             setTimeout(() => msg.style.display = 'none', 3000);
         }
+
+        // ============================================
+        // AI Model Management
+        // ============================================
+
+        let currentModel = 'gpt-4o';
+
+        async function loadAISettings() {
+            try {
+                // Load models
+                const modelsResponse = await fetch('/admin/settings/ai/models');
+                const modelsData = await modelsResponse.json();
+
+                currentModel = modelsData.current_model;
+                renderModelCards(modelsData.models);
+
+                // Load budget
+                const budgetResponse = await fetch('/admin/settings/ai/budget');
+                const budgetData = await budgetResponse.json();
+
+                updateBudgetDisplay(budgetData);
+
+            } catch (error) {
+                console.error('Error loading AI settings:', error);
+                document.getElementById('modelGrid').innerHTML =
+                    '<div style="color: #e53e3e; padding: 20px;">Ошибка загрузки настроек</div>';
+            }
+        }
+
+        function renderModelCards(models) {
+            const grid = document.getElementById('modelGrid');
+            grid.innerHTML = models.map(model => `
+                <div class="model-card ${model.selected ? 'selected' : ''} ${model.premium ? 'premium' : ''}"
+                     onclick="selectModel('${model.id}')" id="model-${model.id}">
+                    ${model.recommended ? '<span class="model-badge badge-recommended">Рекомендуется</span>' : ''}
+                    ${model.premium ? '<span class="model-badge badge-premium">Premium</span>' : ''}
+                    ${model.selected ? '<span class="model-badge badge-selected">Выбрано</span>' : ''}
+                    <div class="model-name">${model.name}</div>
+                    <div class="model-desc">${model.description}</div>
+                    <div class="model-cost">
+                        💰 Input: $${model.cost_input}/1K • Output: $${model.cost_output}/1K
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function selectModel(modelId) {
+            if (modelId === currentModel) return;
+
+            // Confirm if selecting premium model
+            const isPremium = modelId === 'gpt-5.1' || modelId === 'o1';
+            if (isPremium) {
+                const confirm = window.confirm(
+                    `⚠️ ${modelId} - премиум модель с высокой стоимостью.\n\nПродолжить?`
+                );
+                if (!confirm) return;
+            }
+
+            try {
+                const response = await fetch('/admin/settings/ai/model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: modelId })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    currentModel = modelId;
+                    showSuccess();
+
+                    // Update UI
+                    document.querySelectorAll('.model-card').forEach(card => {
+                        card.classList.remove('selected');
+                        card.querySelector('.badge-selected')?.remove();
+                    });
+
+                    const selectedCard = document.getElementById(`model-${modelId}`);
+                    selectedCard.classList.add('selected');
+
+                    const badge = document.createElement('span');
+                    badge.className = 'model-badge badge-selected';
+                    badge.textContent = 'Выбрано';
+                    selectedCard.appendChild(badge);
+
+                } else {
+                    alert('Ошибка: ' + (result.detail || 'Не удалось сменить модель'));
+                }
+
+            } catch (error) {
+                alert('Ошибка при смене модели: ' + error.message);
+            }
+        }
+
+        function updateBudgetDisplay(data) {
+            // Daily
+            document.getElementById('dailyBudget').textContent =
+                `$${data.daily.spent.toFixed(2)} / $${data.daily.limit.toFixed(2)}`;
+            document.getElementById('dailyProgress').style.width =
+                `${Math.min(100, data.daily.percent_used)}%`;
+            document.getElementById('dailyProgress').style.background =
+                data.daily.percent_used > 80 ? '#e53e3e' : '#48bb78';
+
+            // Monthly
+            document.getElementById('monthlyBudget').textContent =
+                `$${data.monthly.spent.toFixed(2)} / $${data.monthly.limit.toFixed(2)}`;
+            document.getElementById('monthlyProgress').style.width =
+                `${Math.min(100, data.monthly.percent_used)}%`;
+
+            // Total
+            document.getElementById('totalRequests').textContent = data.total_requests;
+
+            // Update input values
+            document.getElementById('dailyLimit').value = data.limits.daily;
+            document.getElementById('monthlyLimit').value = data.limits.monthly;
+        }
+
+        async function saveBudgetLimits() {
+            const dailyLimit = parseFloat(document.getElementById('dailyLimit').value);
+            const monthlyLimit = parseFloat(document.getElementById('monthlyLimit').value);
+
+            try {
+                const response = await fetch('/admin/settings/ai/budget', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        daily_limit: dailyLimit,
+                        monthly_limit: monthlyLimit
+                    })
+                });
+
+                if (response.ok) {
+                    showSuccess();
+                    loadAISettings(); // Refresh display
+                } else {
+                    const result = await response.json();
+                    alert('Ошибка: ' + (result.detail || 'Не удалось сохранить'));
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
+        }
+
+        async function resetDailyBudget() {
+            if (!confirm('Сбросить счётчик расходов за сегодня?')) return;
+
+            try {
+                const response = await fetch('/admin/settings/ai/budget/reset', { method: 'POST' });
+                if (response.ok) {
+                    showSuccess();
+                    loadAISettings();
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
+        }
+
+        // Load AI settings on page load
+        document.addEventListener('DOMContentLoaded', loadAISettings);
     </script>
 </body>
 </html>

@@ -13,8 +13,9 @@ import httpx
 import structlog
 
 from ..config import get_settings
-from ..utils.security import SecurityManager  
+from ..utils.security import SecurityManager
 from ..utils.helpers import retry_async, clean_text_for_analysis
+from ..utils.api_budget import api_budget, BudgetExceededError
 from .prompts import ANALYSIS_PROMPTS, SYSTEM_INSTRUCTIONS, SPECIAL_PROMPTS
 from .cache import AnalysisCache
 
@@ -170,13 +171,20 @@ class CallAnalyzer:
             return None
     
     async def _make_openai_request(self, messages: List[Dict]) -> Optional[Dict[str, Any]]:
-        """Make request to OpenAI API"""
-        
+        """Make request to OpenAI API with budget protection"""
+
+        # Check budget before making request
+        estimated_cost = 0.05  # Rough estimate for gpt-3.5-turbo
+        allowed, reason = api_budget.can_make_request(estimated_cost)
+        if not allowed:
+            logger.error(f"Budget exceeded: {reason}")
+            raise BudgetExceededError(reason)
+
         headers = {
             "Authorization": f"Bearer {self.settings.openai_api_key}",
             "Content-Type": "application/json"
         }
-        
+
         payload = {
             "model": self.model,
             "messages": messages,
@@ -184,7 +192,7 @@ class CallAnalyzer:
             "temperature": self.temperature,
             "response_format": {"type": "json_object"}  # Ensure JSON response
         }
-        
+
         async with httpx.AsyncClient(timeout=120.0) as client:
             try:
                 response = await client.post(
@@ -200,15 +208,27 @@ class CallAnalyzer:
                 )
                 
                 response.raise_for_status()
-                
+
                 data = response.json()
-                
+
                 if "choices" not in data or not data["choices"]:
                     logger.error("No choices in OpenAI response")
                     return None
-                
+
+                # Record API usage
+                usage = data.get("usage", {})
+                input_tokens = usage.get("prompt_tokens", 0)
+                output_tokens = usage.get("completion_tokens", 0)
+                if input_tokens or output_tokens:
+                    await api_budget.record_request(
+                        model=self.model,
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        request_type="call_analysis"
+                    )
+
                 content = data["choices"][0]["message"]["content"]
-                
+
                 # Parse JSON response
                 try:
                     return json.loads(content)

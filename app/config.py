@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     
     # API Keys (to be added later)
     openai_api_key: Optional[str] = Field(None, description="OpenAI API Key")
+    openai_model: str = Field(default="gpt-4o", description="OpenAI model for analysis (gpt-4o, gpt-4-turbo, o1, o1-mini)")
     telegram_bot_token: Optional[str] = Field(None, description="Telegram Bot Token")
     telegram_admin_chat_ids: Optional[str] = Field(None, description="Telegram Admin Chat IDs (JSON list)")
     

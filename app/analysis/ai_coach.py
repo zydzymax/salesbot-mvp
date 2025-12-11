@@ -9,6 +9,7 @@ import httpx
 import structlog
 
 from ..config import get_settings
+from ..utils.api_budget import api_budget, BudgetExceededError
 
 logger = structlog.get_logger("salesbot.analysis.ai_coach")
 
@@ -163,10 +164,18 @@ class AICoach:
 """
     
     async def _call_openai(self, prompt: str) -> str:
-        """Вызвать OpenAI API"""
-        
+        """Вызвать OpenAI API с бюджетной защитой"""
+
+        # Budget check
+        allowed, reason = api_budget.can_make_request(0.15)  # AI coach is complex
+        if not allowed:
+            raise BudgetExceededError(reason)
+
         api_key = self.settings.openai_api_key
-        
+        # Get model from runtime settings (can be changed via admin panel)
+        from ..utils.runtime_settings import runtime_settings
+        model = await runtime_settings.get_model()
+
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 "https://api.openai.com/v1/chat/completions",
@@ -175,11 +184,11 @@ class AICoach:
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "gpt-4",  # Используем GPT-4 для лучшего качества
+                    "model": model,
                     "messages": [
                         {
                             "role": "system",
-                            "content": "Ты опытный руководитель отдела продаж. Анализируешь работу менеджеров и даешь конкретные рекомендации."
+                            "content": "Ты опытный руководитель отдела продаж. Анализируешь работу менеджеров и даешь конкретные рекомендации. Отвечай структурированно и кратко."
                         },
                         {
                             "role": "user",
@@ -187,13 +196,23 @@ class AICoach:
                         }
                     ],
                     "temperature": 0.7,
-                    "max_tokens": 2000
+                    "max_tokens": 1500
                 }
             )
-            
+
             response.raise_for_status()
             result = response.json()
-            
+
+            # Track cost
+            usage = result.get("usage", {})
+            if usage:
+                await api_budget.record_request(
+                    model=model,
+                    input_tokens=usage.get("prompt_tokens", 0),
+                    output_tokens=usage.get("completion_tokens", 0),
+                    request_type="ai_coaching"
+                )
+
             return result["choices"][0]["message"]["content"]
     
     def _parse_coaching_response(self, response: str) -> Dict[str, Any]:

@@ -376,6 +376,136 @@
     .expand-btn:hover {
         background: #edf2f7;
     }
+
+    /* Chat Analysis Styles */
+    .btn-light {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    .btn-light:hover {
+        background: rgba(255,255,255,0.3);
+    }
+    .btn-light:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #e2e8f0;
+        border-top-color: #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .chat-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .chat-stat-card {
+        background: #f7fafc;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    .chat-stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #667eea;
+    }
+    .chat-stat-label {
+        font-size: 12px;
+        color: #718096;
+        margin-top: 4px;
+    }
+
+    .chat-scores-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin: 20px 0;
+    }
+    .chat-score-item {
+        background: #f7fafc;
+        padding: 12px;
+        border-radius: 8px;
+    }
+    .chat-score-label {
+        font-size: 13px;
+        color: #4a5568;
+        margin-bottom: 6px;
+    }
+    .chat-score-bar {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .chat-score-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+    .chat-score-fill.high { background: #48bb78; }
+    .chat-score-fill.medium { background: #ecc94b; }
+    .chat-score-fill.low { background: #f56565; }
+
+    .chat-sentiment {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+    .sentiment-positive { background: #c6f6d5; color: #22543d; }
+    .sentiment-interested { background: #bee3f8; color: #2a4365; }
+    .sentiment-neutral { background: #e2e8f0; color: #4a5568; }
+    .sentiment-hesitant { background: #feebc8; color: #744210; }
+    .sentiment-negative { background: #fed7d7; color: #742a2a; }
+
+    .chat-readiness {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+    .readiness-hot { background: #f56565; color: white; }
+    .readiness-warm { background: #ed8936; color: white; }
+    .readiness-cold { background: #4299e1; color: white; }
+
+    .next-action-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 20px;
+    }
+    .next-action-box strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        opacity: 0.9;
+    }
+    .next-action-box p {
+        font-size: 16px;
+        margin: 0;
+    }
 </style>
 {% endblock %}
 
@@ -390,6 +520,22 @@
             <span>📞 Всего звонков: <strong>{{ total_calls }}</strong></span>
             <span>📝 Транскрибировано: <strong>{{ transcribed_calls }}</strong></span>
             <span>🤖 Проанализировано: <strong>{{ analyzed_calls }}</strong></span>
+        </div>
+        <div style="margin-top: 15px;">
+            <button class="btn btn-light" onclick="analyzeChatMessages()" id="chatAnalysisBtn">
+                💬 Анализ переписки
+            </button>
+        </div>
+    </div>
+
+    <!-- Chat Analysis Section -->
+    <div id="chatAnalysisSection" class="section" style="display: none;">
+        <h2>💬 Анализ переписки</h2>
+        <div id="chatAnalysisContent">
+            <div style="text-align: center; padding: 40px;">
+                <div class="spinner"></div>
+                <p style="color: #718096; margin-top: 10px;">Загрузка и анализ сообщений...</p>
+            </div>
         </div>
     </div>
 
@@ -664,6 +810,165 @@ function toggleTranscript(callId) {
         el.style.maxHeight = '150px';
         btn.textContent = 'Показать полностью';
     }
+}
+
+// Chat Analysis
+async function analyzeChatMessages() {
+    const btn = document.getElementById('chatAnalysisBtn');
+    const section = document.getElementById('chatAnalysisSection');
+    const content = document.getElementById('chatAnalysisContent');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Анализ...';
+    section.style.display = 'block';
+
+    try {
+        const response = await fetch('/admin/deals/{{ lead_id }}/chat-analysis');
+        const data = await response.json();
+
+        if (data.success && data.analysis) {
+            content.innerHTML = renderChatAnalysis(data);
+        } else {
+            content.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #718096;">
+                    <p>💬 ${data.error || 'Нет сообщений для анализа'}</p>
+                    <p style="font-size: 13px; margin-top: 10px;">
+                        Переписка загружается из AmoCRM (SMS, WhatsApp, email)
+                    </p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        content.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #e53e3e;">
+                <p>❌ Ошибка: ${error.message}</p>
+            </div>
+        `;
+    }
+
+    btn.disabled = false;
+    btn.textContent = '💬 Анализ переписки';
+}
+
+function renderChatAnalysis(data) {
+    const stats = data.stats || {};
+    const analysis = data.analysis || {};
+    const scores = analysis.scores || {};
+
+    const scoreLabels = {
+        response_speed: 'Скорость ответов',
+        communication_quality: 'Качество коммуникации',
+        needs_identification: 'Выявление потребностей',
+        objection_handling: 'Работа с возражениями',
+        deal_progress: 'Продвижение к сделке',
+        overall: 'Общая оценка'
+    };
+
+    const sentimentLabels = {
+        positive: 'Позитивный',
+        interested: 'Заинтересован',
+        neutral: 'Нейтральный',
+        hesitant: 'Сомневается',
+        negative: 'Негативный'
+    };
+
+    const readinessLabels = {
+        hot: '🔥 Горячий',
+        warm: '🌡️ Тёплый',
+        cold: '❄️ Холодный'
+    };
+
+    let html = `
+        <!-- Stats -->
+        <div class="chat-stats-grid">
+            <div class="chat-stat-card">
+                <div class="chat-stat-value">${stats.total_messages || 0}</div>
+                <div class="chat-stat-label">Сообщений</div>
+            </div>
+            <div class="chat-stat-card">
+                <div class="chat-stat-value">${stats.outgoing_count || 0}</div>
+                <div class="chat-stat-label">От менеджера</div>
+            </div>
+            <div class="chat-stat-card">
+                <div class="chat-stat-value">${stats.incoming_count || 0}</div>
+                <div class="chat-stat-label">От клиента</div>
+            </div>
+            <div class="chat-stat-card">
+                <div class="chat-stat-value">${stats.avg_response_time_minutes || '—'}</div>
+                <div class="chat-stat-label">Ответ (мин)</div>
+            </div>
+        </div>
+
+        <!-- Client Status -->
+        <div style="margin: 20px 0;">
+            <span class="chat-sentiment sentiment-${analysis.client_sentiment || 'neutral'}">
+                ${sentimentLabels[analysis.client_sentiment] || analysis.client_sentiment || 'Не определён'}
+            </span>
+            <span class="chat-readiness readiness-${analysis.client_readiness || 'cold'}">
+                ${readinessLabels[analysis.client_readiness] || analysis.client_readiness}
+            </span>
+        </div>
+
+        <!-- Scores -->
+        <h3 style="margin: 20px 0 10px;">📊 Оценки</h3>
+        <div class="chat-scores-grid">
+    `;
+
+    for (const [key, label] of Object.entries(scoreLabels)) {
+        const score = scores[key] || 0;
+        const level = score >= 70 ? 'high' : score >= 50 ? 'medium' : 'low';
+        html += `
+            <div class="chat-score-item">
+                <div class="chat-score-label">${label}: ${score}/100</div>
+                <div class="chat-score-bar">
+                    <div class="chat-score-fill ${level}" style="width: ${score}%"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+
+    // Summary
+    if (analysis.summary) {
+        html += `
+            <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <strong>📝 Резюме:</strong> ${analysis.summary}
+            </div>
+        `;
+    }
+
+    // Strengths & Weaknesses
+    if (analysis.strengths?.length) {
+        html += `<div class="list-pros"><strong>✅ Сильные стороны:</strong>`;
+        analysis.strengths.forEach(s => html += `<div class="list-item">${s}</div>`);
+        html += '</div>';
+    }
+
+    if (analysis.weaknesses?.length) {
+        html += `<div class="list-cons"><strong>⚠️ Слабые стороны:</strong>`;
+        analysis.weaknesses.forEach(w => html += `<div class="list-item">${w}</div>`);
+        html += '</div>';
+    }
+
+    // Recommendations
+    if (analysis.recommendations?.length) {
+        html += `<div style="margin-top: 15px;"><strong>💡 Рекомендации:</strong><ul style="margin: 10px 0 0 20px;">`;
+        analysis.recommendations.forEach(r => html += `<li style="margin: 5px 0;">${r}</li>`);
+        html += '</ul></div>';
+    }
+
+    // Next Best Action
+    if (analysis.next_best_action) {
+        html += `
+            <div class="next-action-box">
+                <strong>🎯 Следующее действие</strong>
+                <p>${analysis.next_best_action}</p>
+            </div>
+        `;
+    }
+
+    return html;
 }
 </script>
 {% endblock %}

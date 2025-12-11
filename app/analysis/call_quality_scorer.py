@@ -10,6 +10,7 @@ import json
 
 from ..config import get_settings
 from ..utils.helpers import retry_async
+from ..utils.api_budget import api_budget, BudgetExceededError
 import httpx
 
 logger = structlog.get_logger("salesbot.analysis.call_quality_scorer")
@@ -72,7 +73,7 @@ class CallQualityScorer:
         call_duration: int = 0
     ) -> Dict[str, Any]:
         """
-        Оценить качество звонка по всем критериям
+        Оценить качество звонка по всем критериям ОДНИМ запросом (экономия 8x)
 
         Args:
             transcription: Текст разговора
@@ -88,19 +89,27 @@ class CallQualityScorer:
             logger.warning("Transcription too short for quality scoring")
             return self._get_default_score("Транскрипция слишком короткая")
 
+        # Check budget before expensive operation
+        allowed, reason = api_budget.can_make_request(0.10)  # gpt-4 is expensive
+        if not allowed:
+            logger.error(f"Budget exceeded: {reason}")
+            return self._get_default_score(f"Бюджет исчерпан: {reason}")
+
         try:
-            # Оценить каждый критерий
+            # ОПТИМИЗАЦИЯ: Один запрос вместо 8!
+            all_scores = await self._evaluate_all_criteria_single_request(
+                transcription, call_type
+            )
+
+            if not all_scores:
+                return self._get_default_score("Ошибка анализа")
+
+            # Построить результаты из единого ответа
             results = {}
             for criterion_code, criterion_config in self.QUALITY_CHECKLIST.items():
-                score = await self._evaluate_criterion(
-                    transcription,
-                    criterion_code,
-                    criterion_config['criteria'],
-                    call_type
-                )
-
+                score = all_scores.get(criterion_code, 50)  # Default 50 if missing
                 results[criterion_code] = {
-                    'score': score,  # 0-100
+                    'score': score,
                     'weight': criterion_config['weight'],
                     'weighted_score': score * criterion_config['weight'] / 100,
                     'description': criterion_config['description']
@@ -115,13 +124,10 @@ class CallQualityScorer:
             weaknesses = self._identify_weak_points(results)
             critical_issues = self._identify_critical_issues(results)
 
-            # Генерировать рекомендации
-            recommendations = await self._generate_recommendations(
-                results,
-                weaknesses,
-                critical_issues,
-                call_type
-            )
+            # Рекомендации из того же ответа (если есть)
+            recommendations = all_scores.get('recommendations', [])
+            if not recommendations:
+                recommendations = ["Изучите лучшие практики для данного типа звонков"]
 
             return {
                 'total_score': round(total_score, 1),
@@ -136,9 +142,86 @@ class CallQualityScorer:
                 'evaluated_at': datetime.utcnow().isoformat()
             }
 
+        except BudgetExceededError as e:
+            logger.error(f"Budget exceeded: {e}")
+            return self._get_default_score(f"Бюджет исчерпан")
         except Exception as e:
             logger.error(f"Failed to score call: {e}")
             return self._get_default_score(f"Ошибка: {str(e)}")
+
+    async def _evaluate_all_criteria_single_request(
+        self,
+        transcription: str,
+        call_type: str
+    ) -> Optional[Dict[str, Any]]:
+        """Оценить ВСЕ критерии ОДНИМ запросом - экономия 8x!"""
+
+        criteria_list = "\n".join([
+            f"- {code}: {config['criteria']} (вес: {config['weight']}%)"
+            for code, config in self.QUALITY_CHECKLIST.items()
+        ])
+
+        prompt = f"""
+Оцени разговор продажника по ВСЕМ критериям сразу.
+
+Тип звонка: {call_type}
+
+КРИТЕРИИ ОЦЕНКИ:
+{criteria_list}
+
+РАЗГОВОР:
+{transcription[:4000]}
+
+Верни JSON с оценками по каждому критерию (0-100) и рекомендациями:
+{{
+    "greeting": число 0-100,
+    "need_identification": число 0-100,
+    "active_listening": число 0-100,
+    "value_proposition": число 0-100,
+    "objection_handling": число 0-100,
+    "next_step": число 0-100,
+    "tone_professionalism": число 0-100,
+    "call_control": число 0-100,
+    "recommendations": ["рекомендация 1", "рекомендация 2", "рекомендация 3"]
+}}
+
+Шкала оценок:
+0-40 = Плохо / Не выполнено
+41-60 = Удовлетворительно
+61-80 = Хорошо
+81-100 = Отлично
+"""
+
+        try:
+            response = await self._call_gpt(prompt, max_tokens=500, temperature=0.3)
+
+            # Parse JSON response
+            try:
+                # Remove markdown code blocks if present
+                response = response.strip()
+                if response.startswith("```json"):
+                    response = response[7:]
+                if response.startswith("```"):
+                    response = response[3:]
+                if response.endswith("```"):
+                    response = response[:-3]
+
+                result = json.loads(response.strip())
+
+                # Validate scores are in range
+                for key in self.QUALITY_CHECKLIST.keys():
+                    if key in result:
+                        result[key] = max(0, min(100, int(result[key])))
+
+                return result
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse GPT response as JSON: {e}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to evaluate all criteria: {e}")
+            return None
 
     async def _evaluate_criterion(
         self,
@@ -291,10 +374,19 @@ class CallQualityScorer:
             return ["Требуется дополнительное обучение"]
 
     async def _call_gpt(self, prompt: str, max_tokens: int = 500, temperature: float = 0.3) -> str:
-        """Вызвать GPT API"""
+        """Вызвать GPT API с бюджетной защитой"""
 
         if not self.settings.openai_api_key:
             raise ValueError("OpenAI API key not configured")
+
+        # Budget check
+        allowed, reason = api_budget.can_make_request(0.10)
+        if not allowed:
+            raise BudgetExceededError(reason)
+
+        # Get model from runtime settings (can be changed via admin panel)
+        from ..utils.runtime_settings import runtime_settings
+        model = await runtime_settings.get_model()
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
@@ -304,11 +396,11 @@ class CallQualityScorer:
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "gpt-4",
+                    "model": model,
                     "messages": [
                         {
                             "role": "system",
-                            "content": "Ты эксперт по оценке качества продаж. Даешь объективные оценки."
+                            "content": "Ты эксперт по оценке качества продаж. Даешь объективные оценки. Отвечай кратко."
                         },
                         {
                             "role": "user",
@@ -322,6 +414,16 @@ class CallQualityScorer:
 
             response.raise_for_status()
             result = response.json()
+
+            # Track cost
+            usage = result.get("usage", {})
+            if usage:
+                await api_budget.record_request(
+                    model=model,
+                    input_tokens=usage.get("prompt_tokens", 0),
+                    output_tokens=usage.get("completion_tokens", 0),
+                    request_type="quality_scoring"
+                )
 
             return result['choices'][0]['message']['content'].strip()
 
