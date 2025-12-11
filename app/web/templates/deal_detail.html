@@ -506,6 +506,164 @@
         font-size: 16px;
         margin: 0;
     }
+
+    /* Sentiment Dynamics Styles */
+    .sentiment-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+    .sentiment-card {
+        background: #f7fafc;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    .sentiment-card.rapport {
+        background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        border: 1px solid #667eea30;
+    }
+    .sentiment-emoji {
+        font-size: 28px;
+        margin-bottom: 8px;
+    }
+    .sentiment-value {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2d3748;
+    }
+    .sentiment-label {
+        font-size: 12px;
+        color: #718096;
+        margin-top: 4px;
+    }
+
+    .emotion-timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    .emotion-timeline-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-size: 12px;
+        color: #718096;
+    }
+    .emotion-track {
+        height: 60px;
+        background: #f7fafc;
+        border-radius: 8px;
+        position: relative;
+        margin-bottom: 15px;
+        overflow: hidden;
+    }
+    .emotion-track-label {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 12px;
+        font-weight: 600;
+        color: #4a5568;
+        z-index: 2;
+    }
+    .emotion-point {
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        cursor: pointer;
+        transition: transform 0.2s;
+        z-index: 1;
+    }
+    .emotion-point:hover {
+        transform: translate(-50%, -50%) scale(1.3);
+        z-index: 10;
+    }
+    .emotion-point.positive { background: #c6f6d5; }
+    .emotion-point.negative { background: #fed7d7; }
+    .emotion-point.neutral { background: #e2e8f0; }
+    .emotion-point.interested { background: #bee3f8; }
+    .emotion-point.hesitant { background: #feebc8; }
+    .emotion-point.excited { background: #faf089; }
+    .emotion-point.frustrated { background: #feb2b2; }
+    .emotion-point.trusting { background: #9ae6b4; }
+    .emotion-point.skeptical { background: #fbd38d; }
+
+    .emotion-shift {
+        background: #fff5f5;
+        border-left: 4px solid #fc8181;
+        padding: 12px 15px;
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 10px;
+    }
+    .emotion-shift.positive-impact {
+        background: #f0fff4;
+        border-left-color: #68d391;
+    }
+    .emotion-shift-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 5px;
+    }
+    .emotion-shift-arrow {
+        font-size: 18px;
+    }
+    .emotion-shift-trigger {
+        font-size: 13px;
+        color: #4a5568;
+    }
+    .emotion-shift-recommendation {
+        font-size: 12px;
+        color: #718096;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed #e2e8f0;
+    }
+
+    .peak-moment {
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    .peak-moment.positive {
+        background: #f0fff4;
+        border-left: 3px solid #48bb78;
+    }
+    .peak-moment.negative {
+        background: #fff5f5;
+        border-left: 3px solid #f56565;
+    }
+    .peak-quote {
+        font-style: italic;
+        color: #4a5568;
+        margin-top: 8px;
+        font-size: 13px;
+    }
+
+    .emotional-insight {
+        display: flex;
+        gap: 8px;
+        padding: 10px 12px;
+        background: #f7fafc;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    .emotional-insight.win {
+        background: #f0fff4;
+    }
+    .emotional-insight.miss {
+        background: #fffaf0;
+    }
 </style>
 {% endblock %}
 
@@ -521,9 +679,12 @@
             <span>📝 Транскрибировано: <strong>{{ transcribed_calls }}</strong></span>
             <span>🤖 Проанализировано: <strong>{{ analyzed_calls }}</strong></span>
         </div>
-        <div style="margin-top: 15px;">
+        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="btn btn-light" onclick="analyzeChatMessages()" id="chatAnalysisBtn">
                 💬 Анализ переписки
+            </button>
+            <button class="btn btn-light" onclick="analyzeSentimentDynamics()" id="sentimentBtn">
+                🎭 Динамика эмоций
             </button>
         </div>
     </div>
@@ -535,6 +696,17 @@
             <div style="text-align: center; padding: 40px;">
                 <div class="spinner"></div>
                 <p style="color: #718096; margin-top: 10px;">Загрузка и анализ сообщений...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sentiment Dynamics Section -->
+    <div id="sentimentSection" class="section" style="display: none;">
+        <h2>🎭 Динамика эмоций</h2>
+        <div id="sentimentContent">
+            <div style="text-align: center; padding: 40px;">
+                <div class="spinner"></div>
+                <p style="color: #718096; margin-top: 10px;">Анализ эмоциональной динамики...</p>
             </div>
         </div>
     </div>
@@ -967,6 +1139,186 @@ function renderChatAnalysis(data) {
             </div>
         `;
     }
+
+    return html;
+}
+
+// Sentiment Dynamics Analysis
+async function analyzeSentimentDynamics() {
+    const btn = document.getElementById('sentimentBtn');
+    const section = document.getElementById('sentimentSection');
+    const content = document.getElementById('sentimentContent');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Анализ...';
+    section.style.display = 'block';
+
+    try {
+        const response = await fetch('/admin/deals/{{ lead_id }}/sentiment-summary');
+        const data = await response.json();
+
+        if (data.success) {
+            content.innerHTML = renderSentimentDynamics(data);
+        } else {
+            content.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #718096;">
+                    <p>🎭 ${data.error || 'Нет данных для анализа'}</p>
+                    <p style="font-size: 13px; margin-top: 10px;">
+                        Необходимы транскрибированные звонки
+                    </p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        content.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #e53e3e;">
+                <p>❌ Ошибка: ${error.message}</p>
+            </div>
+        `;
+    }
+
+    btn.disabled = false;
+    btn.textContent = '🎭 Динамика эмоций';
+}
+
+function renderSentimentDynamics(data) {
+    const aggregate = data.aggregate || {};
+    const summaries = data.call_summaries || [];
+
+    const emotionEmojis = {
+        positive: '😊',
+        negative: '😞',
+        neutral: '😐',
+        interested: '🤔',
+        hesitant: '😕',
+        professional: '👔',
+        enthusiastic: '🤩'
+    };
+
+    const trendEmojis = {
+        improving: '📈',
+        declining: '📉',
+        stable: '➡️'
+    };
+
+    const trendLabels = {
+        improving: 'Улучшается',
+        declining: 'Ухудшается',
+        stable: 'Стабильно'
+    };
+
+    let html = `
+        <!-- Summary Cards -->
+        <div class="sentiment-summary">
+            <div class="sentiment-card rapport">
+                <div class="sentiment-emoji">🤝</div>
+                <div class="sentiment-value">${aggregate.avg_rapport_score || 50}/100</div>
+                <div class="sentiment-label">Эмоциональный контакт</div>
+            </div>
+            <div class="sentiment-card">
+                <div class="sentiment-emoji">${trendEmojis[aggregate.overall_trend] || '➡️'}</div>
+                <div class="sentiment-value">${trendLabels[aggregate.overall_trend] || 'Стабильно'}</div>
+                <div class="sentiment-label">Тренд настроения</div>
+            </div>
+            <div class="sentiment-card">
+                <div class="sentiment-emoji">${emotionEmojis[aggregate.latest_client_sentiment] || '😐'}</div>
+                <div class="sentiment-value">${aggregate.latest_client_sentiment || 'neutral'}</div>
+                <div class="sentiment-label">Последнее настроение</div>
+            </div>
+            <div class="sentiment-card">
+                <div class="sentiment-emoji">📞</div>
+                <div class="sentiment-value">${data.calls_analyzed || 0}</div>
+                <div class="sentiment-label">Звонков проанализировано</div>
+            </div>
+        </div>
+    `;
+
+    // Call-by-call timeline
+    if (summaries.length > 0) {
+        html += `<h3 style="margin: 25px 0 15px;">📊 Динамика по звонкам</h3>`;
+        html += `<div class="emotion-timeline">`;
+
+        summaries.forEach((call, index) => {
+            const emotion = call.client_sentiment || 'neutral';
+            const emoji = emotionEmojis[emotion] || '😐';
+            const trend = call.trend || 'stable';
+            const trendEmoji = trendEmojis[trend] || '➡️';
+            const rapport = call.rapport_score || 50;
+            const date = call.call_date ? new Date(call.call_date).toLocaleDateString('ru-RU') : 'Н/Д';
+
+            html += `
+                <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: #f7fafc; border-radius: 8px; margin-bottom: 10px;">
+                    <div style="font-size: 24px;">${emoji}</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: #2d3748;">Звонок ${summaries.length - index}</div>
+                        <div style="font-size: 12px; color: #718096;">${date}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 14px;">${trendEmoji} ${trendLabels[trend] || ''}</div>
+                        <div style="font-size: 12px; color: #718096;">Контакт: ${rapport}%</div>
+                    </div>
+                </div>
+            `;
+
+            if (call.key_moment) {
+                html += `
+                    <div style="margin: -5px 0 15px 40px; padding: 10px; background: #fffaf0; border-radius: 8px; font-size: 13px;">
+                        💡 <em>${call.key_moment}</em>
+                    </div>
+                `;
+            }
+        });
+
+        html += `</div>`;
+    }
+
+    // Recommendations based on trend
+    html += `
+        <div style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); border-radius: 12px;">
+            <h4 style="margin: 0 0 15px; color: #667eea;">💡 Рекомендации по эмоциональному контакту</h4>
+    `;
+
+    if (aggregate.overall_trend === 'declining') {
+        html += `
+            <div class="emotional-insight miss">
+                <span>⚠️</span>
+                <span>Настроение клиента ухудшается. Обратите внимание на возражения и сомнения.</span>
+            </div>
+            <div class="emotional-insight">
+                <span>💬</span>
+                <span>Попробуйте начать следующий звонок с вопроса о впечатлениях клиента.</span>
+            </div>
+        `;
+    } else if (aggregate.overall_trend === 'improving') {
+        html += `
+            <div class="emotional-insight win">
+                <span>✅</span>
+                <span>Отличная динамика! Клиент становится более расположен к сделке.</span>
+            </div>
+            <div class="emotional-insight">
+                <span>🎯</span>
+                <span>Самое время переходить к закрытию сделки.</span>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="emotional-insight">
+                <span>📊</span>
+                <span>Настроение стабильно. Попробуйте добавить позитивных эмоций в общение.</span>
+            </div>
+        `;
+    }
+
+    if (aggregate.avg_rapport_score < 50) {
+        html += `
+            <div class="emotional-insight miss">
+                <span>🤝</span>
+                <span>Эмоциональный контакт ниже нормы. Больше слушайте клиента и проявляйте эмпатию.</span>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
 
     return html;
 }

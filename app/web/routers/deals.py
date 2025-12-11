@@ -228,3 +228,131 @@ async def analyze_custom_chat(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{lead_id}/calls/{call_id}/sentiment")
+async def get_call_sentiment_dynamics(lead_id: str, call_id: str) -> Dict[str, Any]:
+    """
+    Получить анализ эмоциональной динамики звонка
+
+    Детальный анализ изменения эмоций по ходу разговора:
+    - Timeline эмоций клиента и менеджера
+    - Ключевые изменения настроения
+    - Поворотные точки
+    - Рекомендации по эмоциональному интеллекту
+    """
+    from ...analysis.sentiment_analyzer import sentiment_dynamics_analyzer
+
+    async with db_manager.get_session() as session:
+        from sqlalchemy import select
+
+        # Найти звонок
+        stmt = select(Call).where(
+            Call.amocrm_lead_id == lead_id,
+            Call.amocrm_call_id == call_id
+        )
+        result = await session.execute(stmt)
+        call = result.scalar_one_or_none()
+
+        if not call:
+            # Попробуем найти по UUID
+            try:
+                from uuid import UUID
+                call_uuid = UUID(call_id)
+                stmt = select(Call).where(Call.id == call_uuid)
+                result = await session.execute(stmt)
+                call = result.scalar_one_or_none()
+            except:
+                pass
+
+        if not call:
+            raise HTTPException(status_code=404, detail="Звонок не найден")
+
+        if not call.transcription_text:
+            raise HTTPException(
+                status_code=400,
+                detail="Транскрипция звонка отсутствует"
+            )
+
+        # Анализ эмоциональной динамики
+        analysis = await sentiment_dynamics_analyzer.analyze_sentiment_dynamics(
+            transcription=call.transcription_text,
+            call_duration_seconds=call.duration_seconds
+        )
+
+        if not analysis:
+            raise HTTPException(
+                status_code=500,
+                detail="Не удалось проанализировать эмоции"
+            )
+
+        return {
+            "success": True,
+            "call_id": str(call.id),
+            "lead_id": lead_id,
+            "duration_seconds": call.duration_seconds,
+            "sentiment_dynamics": analysis.to_dict()
+        }
+
+
+@router.get("/{lead_id}/sentiment-summary")
+async def get_deal_sentiment_summary(lead_id: str) -> Dict[str, Any]:
+    """
+    Получить сводку по эмоциям всех звонков по сделке
+    """
+    from ...analysis.sentiment_analyzer import sentiment_dynamics_analyzer
+
+    async with db_manager.get_session() as session:
+        from sqlalchemy import select
+
+        # Получить все звонки по сделке
+        stmt = select(Call).where(
+            Call.amocrm_lead_id == lead_id,
+            Call.transcription_text.isnot(None)
+        ).order_by(Call.created_at.desc())
+
+        result = await session.execute(stmt)
+        calls = list(result.scalars().all())
+
+        if not calls:
+            return {
+                "success": False,
+                "error": "Нет звонков с транскрипцией",
+                "calls_analyzed": 0
+            }
+
+        # Анализируем последние 5 звонков
+        summaries = []
+        for call in calls[:5]:
+            summary = await sentiment_dynamics_analyzer.get_emotion_summary(
+                call.transcription_text
+            )
+            summaries.append({
+                "call_id": str(call.id),
+                "call_date": call.created_at.isoformat() if call.created_at else None,
+                "duration": call.duration_seconds,
+                **summary
+            })
+
+        # Агрегированные метрики
+        avg_rapport = sum(s.get("rapport_score", 50) for s in summaries) / len(summaries)
+
+        # Определить общий тренд
+        trends = [s.get("trend") for s in summaries]
+        if trends.count("improving") > len(trends) // 2:
+            overall_trend = "improving"
+        elif trends.count("declining") > len(trends) // 2:
+            overall_trend = "declining"
+        else:
+            overall_trend = "stable"
+
+        return {
+            "success": True,
+            "calls_analyzed": len(summaries),
+            "call_summaries": summaries,
+            "aggregate": {
+                "avg_rapport_score": round(avg_rapport, 1),
+                "overall_trend": overall_trend,
+                "latest_client_sentiment": summaries[0].get("client_sentiment") if summaries else None
+            }
+        }
