@@ -356,3 +356,106 @@ async def get_deal_sentiment_summary(lead_id: str) -> Dict[str, Any]:
                 "latest_client_sentiment": summaries[0].get("client_sentiment") if summaries else None
             }
         }
+
+
+@router.get("/{lead_id}/suggest-tasks")
+async def suggest_tasks_for_deal(lead_id: str) -> Dict[str, Any]:
+    """
+    Предложить задачи на основе анализа сделки
+
+    Анализирует последний звонок и рекомендации, предлагает задачи
+    без автоматического создания в AmoCRM
+    """
+    from ...services.task_creator import ai_task_creator
+
+    async with db_manager.get_session() as session:
+        from sqlalchemy import select
+
+        # Получить последний проанализированный звонок
+        stmt = select(Call).where(
+            Call.amocrm_lead_id == lead_id,
+            Call.analysis_result.isnot(None)
+        ).order_by(Call.created_at.desc()).limit(1)
+
+        result = await session.execute(stmt)
+        call = result.scalar_one_or_none()
+
+        if not call or not call.analysis_result:
+            return {
+                "success": False,
+                "error": "Нет проанализированных звонков",
+                "tasks": []
+            }
+
+        # Получить предложения задач
+        suggested_tasks = await ai_task_creator.suggest_tasks(
+            lead_id=lead_id,
+            analysis_result=call.analysis_result
+        )
+
+        return {
+            "success": True,
+            "tasks": suggested_tasks,
+            "source_call_id": str(call.id)
+        }
+
+
+@router.post("/{lead_id}/create-tasks")
+async def create_tasks_for_deal(
+    lead_id: str,
+    task_indices: List[int] = None
+) -> Dict[str, Any]:
+    """
+    Создать задачи в AmoCRM из рекомендаций
+
+    Args:
+        lead_id: ID сделки
+        task_indices: Индексы задач для создания (если None - все)
+    """
+    from ...services.task_creator import ai_task_creator
+
+    async with db_manager.get_session() as session:
+        from sqlalchemy import select
+
+        # Получить последний проанализированный звонок
+        stmt = select(Call).where(
+            Call.amocrm_lead_id == lead_id,
+            Call.analysis_result.isnot(None)
+        ).order_by(Call.created_at.desc()).limit(1)
+
+        result = await session.execute(stmt)
+        call = result.scalar_one_or_none()
+
+        if not call:
+            raise HTTPException(status_code=404, detail="Нет проанализированных звонков")
+
+        if not call.manager_id:
+            raise HTTPException(status_code=400, detail="Не указан менеджер для звонка")
+
+        # Создать задачи
+        created = await ai_task_creator.create_tasks_from_analysis(
+            lead_id=lead_id,
+            manager_id=call.manager_id,
+            analysis_result=call.analysis_result,
+            source="web_ui",
+            auto_create=True
+        )
+
+        successful = [c for c in created if c.success]
+        failed = [c for c in created if not c.success]
+
+        return {
+            "success": len(successful) > 0,
+            "created_count": len(successful),
+            "failed_count": len(failed),
+            "tasks": [
+                {
+                    "title": c.task.title,
+                    "type": c.task.task_type.value,
+                    "deadline_days": c.task.deadline_days,
+                    "success": c.success,
+                    "error": c.error
+                }
+                for c in created
+            ]
+        }
