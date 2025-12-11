@@ -459,3 +459,43 @@ async def create_tasks_for_deal(
                 for c in created
             ]
         }
+
+
+@router.get("/{lead_id}/commitments")
+async def get_deal_commitments(lead_id: str) -> Dict[str, Any]:
+    """
+    Получить обязательства по сделке
+
+    Извлекает и анализирует все обязательства (обещания) из звонков:
+    - Что клиент обещал сделать
+    - Что менеджер обещал сделать
+    - Сроки и статусы выполнения
+    """
+    from ...services.commitment_tracker import commitment_tracker
+
+    try:
+        summary = await commitment_tracker.get_deal_commitments(
+            lead_id=lead_id,
+            include_completed=False
+        )
+
+        return {
+            "success": True,
+            "lead_id": lead_id,
+            "total_commitments": summary.total_commitments,
+            "pending_count": summary.pending_count,
+            "overdue_count": summary.overdue_count,
+            "completed_count": summary.completed_count,
+            "health_score": summary.health_score,
+            "next_deadline": summary.next_deadline.isoformat() if summary.next_deadline else None,
+            "client_commitments": summary.client_commitments,
+            "manager_commitments": summary.manager_commitments
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "client_commitments": [],
+            "manager_commitments": []
+        }

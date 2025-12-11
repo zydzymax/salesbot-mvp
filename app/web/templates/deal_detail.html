@@ -765,6 +765,110 @@
         border-radius: 8px;
         margin-top: 15px;
     }
+
+    /* Commitments Styles */
+    .commitments-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+    .commitment-stat {
+        background: #f7fafc;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    .commitment-stat.health {
+        background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        border: 1px solid #667eea30;
+    }
+    .commitment-stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #2d3748;
+    }
+    .commitment-stat-value.overdue { color: #e53e3e; }
+    .commitment-stat-value.pending { color: #dd6b20; }
+    .commitment-stat-label {
+        font-size: 12px;
+        color: #718096;
+        margin-top: 4px;
+    }
+
+    .commitment-group {
+        margin-bottom: 25px;
+    }
+    .commitment-group-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .commitment-item {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    .commitment-item.overdue {
+        border-left: 4px solid #e53e3e;
+        background: #fff5f5;
+    }
+    .commitment-item.pending {
+        border-left: 4px solid #dd6b20;
+    }
+    .commitment-item.completed {
+        border-left: 4px solid #38a169;
+        background: #f0fff4;
+        opacity: 0.7;
+    }
+
+    .commitment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .commitment-type {
+        font-weight: 600;
+        color: #2d3748;
+    }
+    .commitment-status {
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .status-pending { background: #feebc8; color: #c05621; }
+    .status-overdue { background: #fed7d7; color: #c53030; }
+    .status-completed { background: #c6f6d5; color: #22543d; }
+
+    .commitment-description {
+        color: #4a5568;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+    .commitment-quote {
+        font-style: italic;
+        color: #718096;
+        font-size: 13px;
+        padding: 8px 12px;
+        background: #f7fafc;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+    .commitment-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #718096;
+    }
 </style>
 {% endblock %}
 
@@ -789,6 +893,9 @@
             </button>
             <button class="btn btn-light" onclick="suggestTasks()" id="tasksBtn">
                 📋 Создать задачи
+            </button>
+            <button class="btn btn-light" onclick="loadCommitments()" id="commitmentsBtn">
+                🤝 Обязательства
             </button>
         </div>
     </div>
@@ -822,6 +929,17 @@
             <div style="text-align: center; padding: 40px;">
                 <div class="spinner"></div>
                 <p style="color: #718096; margin-top: 10px;">Формирование задач из рекомендаций AI...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commitments Section -->
+    <div id="commitmentsSection" class="section" style="display: none;">
+        <h2>🤝 Обязательства</h2>
+        <div id="commitmentsContent">
+            <div style="text-align: center; padding: 40px;">
+                <div class="spinner"></div>
+                <p style="color: #718096; margin-top: 10px;">Анализ обязательств из звонков...</p>
             </div>
         </div>
     </div>
@@ -1587,6 +1705,162 @@ async function createSelectedTasks() {
         btn.textContent = '🔄 Попробовать снова';
         btn.disabled = false;
     }
+}
+
+// Commitments tracking
+async function loadCommitments() {
+    const btn = document.getElementById('commitmentsBtn');
+    const section = document.getElementById('commitmentsSection');
+    const content = document.getElementById('commitmentsContent');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Загрузка...';
+    section.style.display = 'block';
+
+    try {
+        const response = await fetch('/admin/deals/{{ lead_id }}/commitments');
+        const data = await response.json();
+
+        if (data.success) {
+            content.innerHTML = renderCommitments(data);
+        } else {
+            content.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #718096;">
+                    <p>🤝 ${data.error || 'Не удалось загрузить обязательства'}</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        content.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #e53e3e;">
+                <p>❌ Ошибка: ${error.message}</p>
+            </div>
+        `;
+    }
+
+    btn.disabled = false;
+    btn.textContent = '🤝 Обязательства';
+}
+
+function renderCommitments(data) {
+    const typeLabels = {
+        client_call_back: '📞 Перезвонит',
+        client_decide: '🤔 Примет решение',
+        client_send_docs: '📄 Отправит документы',
+        client_discuss: '👥 Обсудит',
+        client_meeting: '🤝 Придет на встречу',
+        manager_call_back: '📞 Перезвонит',
+        manager_send_info: '📧 Отправит информацию',
+        manager_prepare: '📋 Подготовит предложение',
+        manager_meeting: '🤝 Назначит встречу',
+        payment: '💰 Оплата'
+    };
+
+    const statusLabels = {
+        pending: 'Ожидает',
+        overdue: 'Просрочено',
+        completed: 'Выполнено'
+    };
+
+    let html = `
+        <!-- Summary -->
+        <div class="commitments-summary">
+            <div class="commitment-stat health">
+                <div class="commitment-stat-value" style="color: ${data.health_score >= 70 ? '#38a169' : data.health_score >= 40 ? '#dd6b20' : '#e53e3e'}">
+                    ${data.health_score}%
+                </div>
+                <div class="commitment-stat-label">Здоровье обязательств</div>
+            </div>
+            <div class="commitment-stat">
+                <div class="commitment-stat-value">${data.total_commitments}</div>
+                <div class="commitment-stat-label">Всего</div>
+            </div>
+            <div class="commitment-stat">
+                <div class="commitment-stat-value pending">${data.pending_count}</div>
+                <div class="commitment-stat-label">Ожидают</div>
+            </div>
+            <div class="commitment-stat">
+                <div class="commitment-stat-value overdue">${data.overdue_count}</div>
+                <div class="commitment-stat-label">Просрочено</div>
+            </div>
+        </div>
+    `;
+
+    if (data.next_deadline) {
+        const deadline = new Date(data.next_deadline);
+        html += `
+            <div style="background: #fffaf0; padding: 12px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #dd6b20;">
+                ⏰ Ближайший дедлайн: <strong>${deadline.toLocaleDateString('ru-RU')}</strong>
+            </div>
+        `;
+    }
+
+    // Client commitments
+    if (data.client_commitments.length > 0) {
+        html += `
+            <div class="commitment-group">
+                <div class="commitment-group-header">
+                    <span>👤</span>
+                    <span>Обязательства клиента</span>
+                    <span style="font-size: 14px; color: #718096; font-weight: normal;">(${data.client_commitments.length})</span>
+                </div>
+        `;
+
+        data.client_commitments.forEach(c => {
+            html += renderCommitmentItem(c, typeLabels, statusLabels);
+        });
+
+        html += `</div>`;
+    }
+
+    // Manager commitments
+    if (data.manager_commitments.length > 0) {
+        html += `
+            <div class="commitment-group">
+                <div class="commitment-group-header">
+                    <span>🎧</span>
+                    <span>Обязательства менеджера</span>
+                    <span style="font-size: 14px; color: #718096; font-weight: normal;">(${data.manager_commitments.length})</span>
+                </div>
+        `;
+
+        data.manager_commitments.forEach(c => {
+            html += renderCommitmentItem(c, typeLabels, statusLabels);
+        });
+
+        html += `</div>`;
+    }
+
+    if (data.total_commitments === 0) {
+        html += `
+            <div style="text-align: center; padding: 40px; color: #718096;">
+                <p>🤝 Обязательства не найдены</p>
+                <p style="font-size: 13px; margin-top: 10px;">
+                    AI не обнаружил явных обещаний в последних звонках
+                </p>
+            </div>
+        `;
+    }
+
+    return html;
+}
+
+function renderCommitmentItem(c, typeLabels, statusLabels) {
+    const deadline = c.deadline ? new Date(c.deadline).toLocaleDateString('ru-RU') : c.deadline_text || 'Не указан';
+
+    return `
+        <div class="commitment-item ${c.status}">
+            <div class="commitment-header">
+                <span class="commitment-type">${typeLabels[c.commitment_type] || c.commitment_type}</span>
+                <span class="commitment-status status-${c.status}">${statusLabels[c.status] || c.status}</span>
+            </div>
+            <div class="commitment-description">${c.description}</div>
+            ${c.quote ? `<div class="commitment-quote">"${c.quote}"</div>` : ''}
+            <div class="commitment-meta">
+                <span>⏰ Срок: ${deadline}</span>
+            </div>
+        </div>
+    `;
 }
 </script>
 {% endblock %}
