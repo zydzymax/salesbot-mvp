@@ -94,15 +94,15 @@ async def main():
             print(dialogue)
             print("-" * 80)
 
-            # Анализ с GPT-5
-            print("\n🔄 Глубокий анализ (GPT-5 Pro)...")
-            print("⏳ Это может занять 2-5 минут...")
+            # Анализ с GPT-4o (быстрее и стабильнее чем GPT-5)
+            print("\n🔄 Глубокий анализ (GPT-4o)...")
+            print("⏳ Это займет 20-40 секунд...")
 
             analysis = await analyze_dialog(
                 dialogue_text=dialogue,
                 api_key=settings.openai_api_key,
-                model="gpt-5-pro",
-                temperature=0.3,
+                model="gpt-4o",  # Используем GPT-4o - быстрее и дешевле
+                temperature=0.1,  # Снижаем для точности
                 max_retries=3,
                 prompt_version="v2"
             )
