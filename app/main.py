@@ -289,6 +289,45 @@ async def health_check():
         )
 
 
+# Readiness probe endpoint
+@app.get("/ready")
+async def readiness_check():
+    """
+    Readiness probe for Kubernetes.
+
+    Returns whether the application is ready to receive traffic.
+    Only checks critical dependencies.
+    """
+    try:
+        checks = {}
+
+        # Check Redis (critical)
+        redis_check = await monitoring_manager.check_redis()
+        checks["redis"] = redis_check.get("status") == "healthy"
+
+        ready = all(checks.values())
+
+        return JSONResponse(
+            status_code=200 if ready else 503,
+            content={
+                "ready": ready,
+                "timestamp": datetime.utcnow().isoformat(),
+                "checks": checks
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Readiness check failed: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "ready": False,
+                "error": str(e),
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
+
 # Metrics endpoint (protected)
 @app.get("/metrics")
 async def get_metrics(api_key: str = None):
