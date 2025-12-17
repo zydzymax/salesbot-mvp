@@ -1,6 +1,12 @@
 # SalesBot MVP
 
+[![CI](https://github.com/zydzymax/salesbot-mvp/actions/workflows/ci.yml/badge.svg)](https://github.com/zydzymax/salesbot-mvp/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 AI-powered sales call analysis system for B2B apparel/knitwear manufacturing (SoVAni).
+
+> **Quick Start:** See [QUICK_START.md](QUICK_START.md) for fast setup.
 
 ## Architecture
 
