@@ -101,7 +101,11 @@ celerybeat.pid
 
 # Backup files
 *.bak
+*.bak.*
 *.backup
+*.backup.*
+.env.backup*
+*.env.bak
 *.tar.gz
 *.zip
 
